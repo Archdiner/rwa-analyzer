@@ -19,7 +19,7 @@ import type {
     FieldValue,
     TokenizationMode,
 } from "@/lib/contracts";
-import { formatAssetId } from "@/lib/chains";
+import { formatAssetId, parseAssetId } from "@/lib/chains";
 
 export interface SeedAsset {
     identifiers: Pick<AssetIdentifiers, "name" | "symbol" | "chain_id" | "contract_address"> &
@@ -229,4 +229,18 @@ export function getSeed(assetId: string): SeedAsset | undefined {
 
 export function allSeeds(): { assetId: string; seed: SeedAsset }[] {
     return Object.entries(SEED).map(([assetId, seed]) => ({ assetId, seed }));
+}
+
+/**
+ * Resolves a caller's query to a canonical asset_id. Accepts a canonical
+ * "{chainId}:{address}" (any asset, seeded or long-tail) or a known seed symbol
+ * (e.g. "ousg"). Returns null if it's neither. Lets agents call by ticker.
+ */
+export function resolveSeedAssetId(query: string): string | null {
+    const q = query.trim();
+    const parsed = parseAssetId(q);
+    if (parsed) return formatAssetId(parsed.chainId, parsed.address);
+    const lower = q.toLowerCase();
+    const hit = allSeeds().find(({ seed }) => seed.identifiers.symbol.toLowerCase() === lower);
+    return hit ? hit.assetId : null;
 }

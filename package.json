@@ -2,15 +2,21 @@
   "name": "rwa-analyzer",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "rwa-verify": "bin/rwa-verify.ts"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "verify": "tsx bin/rwa-verify.ts",
+    "mcp": "tsx mcp/server.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@supabase/supabase-js": "^2.110.1",
     "fast-xml-parser": "^5.9.3",
     "lucide-react": "^1.23.0",

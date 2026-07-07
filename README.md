@@ -1,12 +1,39 @@
 # RWA Reliability Analyzer
 
-Tell it where you are and roughly how much you have. It filters tokenized-asset yield down to what you can **actually reach**, ranks it **safety-first**, and shows — for each — exactly where the trust bottoms out. A list makes yield look free; this prices the risk next to it. Or paste any asset by address for the full per-dimension read, where **every claim shows its source and its confidence** and auto-extracted data never wears the same badge as verified data.
+An honest, machine-readable **backing-verification primitive** for tokenized real-world assets: give it an asset, it tells you whether the backing claim actually reconciles against an independent source — and, just as importantly, where it can't. Callable by an **agent (MCP)**, a **CLI**, or **HTTP**. The website is one client of it.
+
+The one thing it refuses to do is fake a green. Most tools hand back a checkmark; this hands back a structured, two-axis verdict whose caveat is impossible to drop (see **[Call it as a tool](#call-it-as-a-tool)**). That's the exact shape an autonomous agent needs before it parks stablecoins in an instrument it can't eyeball.
 
 This rates **assets** on public facts and **never holds your money** — you deposit with the provider directly. It is not a rating agency and **not financial advice**.
 
-### The decision surface (more than a list)
+## Call it as a tool
 
-The landing is the tool. A profile (jurisdiction + amount) drives a pure, tested engine (`lib/decision.ts`) that does three things a static list can't:
+The core is a function — asset in, honest verdict out — exposed three ways over one server-side contract (`lib/agent/verdict.ts`, `GET /api/verify`). The verdict is deliberately **un-collapsible to a boolean**: there is no `safe: true`. Backing is two orthogonal axes you must read together — `tier` (`verified_backed | partially_verified | does_not_reconcile | unverifiable`) and `confidence` (`verified | auto | unverifiable`) — plus a `meaning` sentence, a `trust_boundary`, and `caveats` that are required non-empty unless the verdict is fully verified. `verified_backed` means the backing reconciled against a named independent source; it is **not** a safety guarantee, and `unverifiable` is **not** a judgment of danger — absence of a red flag is not a green light.
+
+**MCP (the primary artifact).** A stdio server exposing `check_asset_backing` and `list_verified_assets`. Register it with any MCP client:
+
+```json
+{
+  "mcpServers": {
+    "rwa-backing-verifier": {
+      "command": "npx",
+      "args": ["tsx", "mcp/server.ts"],
+      "cwd": "/absolute/path/to/rwa-analyzer",
+      "env": { "RWA_API_BASE": "https://rwa-analyzer.vercel.app" }
+    }
+  }
+}
+```
+
+**CLI.** `npm run verify -- ousg` (or any ticker / `{chainId}:{address}`). Points at the deployed API by default; set `RWA_API_BASE` for a local server. The tier is printed, never encoded in the exit code — you read the verdict, you don't branch on `0/1`.
+
+**HTTP.** `GET /api/verify?asset=OUSG` returns the same `AgentVerdict` JSON.
+
+Scope is tight on purpose: this answers "is this asset's backing real?" — it is not an agent trust/reputation protocol.
+
+### The decision surface (one client, for humans)
+
+The landing is a human client of the same engine. A profile (jurisdiction + amount) drives a pure, tested engine (`lib/decision.ts`) that does three things a static list can't:
 
 1. **Reachability** — closes what you can't legally touch (US-retail vs qualified-purchaser vs non-US), with the plain reason, instead of making you decode legal pages.
 2. **Safety-first ranking** — safest backing first, yield only breaking ties within a tier. A green 4.15% ranks above an unknown 6.5%, because yield is the compensation for risk.
