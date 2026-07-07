@@ -3,6 +3,7 @@ import { GREEN_INDEPENDENCE_FLOOR, type EvidenceItem } from "@/lib/contracts";
 import {
     EVIDENCE_SOURCE_LABELS,
     EVIDENCE_EXTRACTION_LABELS,
+    EVIDENCE_TRUST_BOUNDARY,
     independenceLabel,
 } from "@/lib/display";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
@@ -48,6 +49,14 @@ export default function BackingEvidence({ evidence }: { evidence: EvidenceItem[]
                             {e.parse_confidence != null && <span>parse conf: {e.parse_confidence.toFixed(2)}</span>}
                         </div>
                         {e.note && <p className="mt-2 text-[11px] leading-relaxed text-text-muted">{e.note}</p>}
+                        <div className="mt-2 flex items-start gap-1.5 border-l-2 border-[color:var(--gate-bg)] pl-2.5">
+                            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-text-faint">
+                                Trust boundary
+                            </span>
+                            <p className="text-[11px] leading-relaxed text-text-muted">
+                                {EVIDENCE_TRUST_BOUNDARY[e.source_type]}
+                            </p>
+                        </div>
                         {e.citation && (
                             <div className="mt-2 border-l-2 border-[color:var(--auto)] pl-2.5">
                                 <p className="italic text-text-muted">“{e.citation.text_span}”</p>

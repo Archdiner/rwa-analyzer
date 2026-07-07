@@ -82,3 +82,25 @@ export function independenceLabel(n: number): string {
     if (n >= 1) return "self-reported";
     return "unproven";
 }
+
+/**
+ * Where trust bottoms out for each evidence type — the exact point at which
+ * on-chain verification stops and institutional trust begins. Every verdict has
+ * one; naming it on the card (not just the README) is the product's integrity in
+ * one line. No source is a chain of proof all the way down, and pretending
+ * otherwise is the failure this tool exists to refuse.
+ */
+export const EVIDENCE_TRUST_BOUNDARY: Record<EvidenceSourceType, string> = {
+    regulator_filing:
+        "Proves this is a redeemable share of a regulator-verified fund — not a reconciliation of the on-chain float against the fund's share register. That linkage is the transfer agent's record.",
+    onchain_holdings:
+        "Proves what the reserve wallet holds on-chain. It does not prove the backing of the instruments held — this read is only as independent as they are.",
+    auditor_attestation:
+        "Rests on an independent auditor's attestation as of a date, not a live or continuous proof.",
+    admin_report:
+        "Rests on the fund administrator's report — independent of the issuer, but not a regulator filing or an audit.",
+    custodian_feed: "Rests on the custodian's published balance — trust bottoms out at the custodian's record.",
+    oracle_por: "Rests on the proof-of-reserve feed's methodology — trust bottoms out at whoever attests the feed.",
+    issuer_selfreport:
+        "Self-reported by the issuer — trust bottoms out at the issuer's own word, with no independent verification.",
+};
