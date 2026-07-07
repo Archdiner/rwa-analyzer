@@ -42,6 +42,15 @@ export function cronSecret(): string | undefined {
     return process.env.CRON_SECRET || undefined;
 }
 
+/**
+ * SEC EDGAR requires a descriptive User-Agent with a contact. Overridable via
+ * SEC_USER_AGENT; the default is honest about what the tool is. EDGAR is a free
+ * public API — no key needed, only the UA courtesy header.
+ */
+export function secUserAgent(): string {
+    return process.env.SEC_USER_AGENT || "RWA-Reliability-Analyzer research contact@rwa-analyzer.dev";
+}
+
 export function appUrl(): string {
     if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
     if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;

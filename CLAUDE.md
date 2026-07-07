@@ -36,4 +36,6 @@ Three modules behind two FROZEN contracts in `lib/contracts.ts`:
 
 Backing reads `NormalizedAssetRecord.backing_evidence[]`, not a single reserves field. Each `EvidenceItem` carries an INDEPENDENCE (who wrote it → ceiling color) and an EXTRACTION method (how we read it → confidence label). On-chain reconstruction of a held token cannot exceed that token's own backing independence (anti-laundering ceiling). `tokenization_mode` decides how reserves reconcile: `fully_tokenized` reconciles against supply×NAV; `tranche_of_registered_fund` gets green via regulated structure + NAV integrity, not total-pool matching.
 
+Evidence sources today: `chainlink` (oracle PoR, none for flagships), `onchain-holdings` (reconstruction; registry empty because no flagship publishes an attributable reserve wallet — see `reserves-registry.ts`), and `edgar` (SEC N-MFP for registered '40-Act MMFs). EDGAR is the only realized green path in the flagship set — it produces BENJI's green. Its scope is narrow (registered funds only; useless for 3(c)(7)/non-US notes) and its registry maps asset → `(cik, seriesId)`; the adapter re-checks the fetched filing's `seriesId` before emitting, so it can never attribute another fund's filing.
+
 Do not reshape the contracts casually. Add fields additively; never repurpose one. The LLM belongs only in ingestion.

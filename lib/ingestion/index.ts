@@ -24,6 +24,7 @@ import { onchainAdapter } from "@/lib/ingestion/adapters/onchain";
 import { onchainHoldingsAdapter } from "@/lib/ingestion/adapters/onchain-holdings";
 import { chainlinkAdapter } from "@/lib/ingestion/adapters/chainlink";
 import { defillamaAdapter } from "@/lib/ingestion/adapters/defillama";
+import { edgarAdapter } from "@/lib/ingestion/adapters/edgar";
 import { rwaxyzAdapter } from "@/lib/ingestion/adapters/rwaxyz";
 import { resolveIssuerDoc } from "@/lib/ingestion/adapters/issuer-docs";
 import { extractQualitative } from "@/lib/ingestion/extractor";
@@ -60,9 +61,10 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
     const onchain = await onchainAdapter(parsed);
     const symbolHint = opts.identifiers?.symbol ?? onchain.identifiers?.symbol;
 
-    const [chainlink, defillama, rwaxyz] = await Promise.all([
+    const [chainlink, defillama, edgar, rwaxyz] = await Promise.all([
         chainlinkAdapter(parsed),
         defillamaAdapter(parsed),
+        edgarAdapter(parsed),
         rwaxyzAdapter(parsed, symbolHint),
     ]);
 
@@ -72,6 +74,7 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
         onchain,
         chainlink,
         defillama,
+        edgar,
         rwaxyz,
     ];
 

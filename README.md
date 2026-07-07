@@ -83,6 +83,7 @@ npm run seed                 # ingests + stores the flagship assets
 | `OPENAI_API_KEY` | qualitative extraction | qualitative fields → unverifiable |
 | `RWA_XYZ_API_KEY` | rwa.xyz v4 (**Enterprise/paid** — no free API) | reference fields skipped |
 | `WEB_SEARCH_API_KEY` | issuer-doc discovery on cold lookups (Serper format) | discovery uses known URLs only |
+| `SEC_USER_AGENT` | courtesy UA for EDGAR (free, no key) | a sensible default is used |
 | `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | the asset store | no caching (on-demand each load) |
 | `CRON_SECRET` | guards the daily refresh cron | cron open (set it in prod) |
 
@@ -106,7 +107,13 @@ Smart-contract/oracle depth, secondary-liquidity depth, duration modeling, human
 
 Verified-**green** backing on tokenized RWAs is genuinely hard to produce, and this tool produces it where it can and refuses to fake it everywhere else. The flagship money funds ship **no** Chainlink Proof-of-Reserve feed, so the only paths to a real green are a **regulator filing** (EDGAR, for registered funds) or **on-chain reconstruction** (reading reserves directly) — and reconstruction only works when the reserve wallet is **published and attributable**.
 
-Worked example — **OUSG** (verified on-chain 2026-07-07): the "read OUSG's BUIDL on-chain" story does **not** hold. Every Ondo-published Ethereum address holds **0 BUIDL**; the reserves sit in segregated accounts at third-party custodians (Clear Street / Coinbase Custody) for the Ondo I LP SPV — addresses Ondo does not attribute publicly. So on-chain reconstruction resolves **0%** of OUSG's backing to an attributable wallet, and OUSG's real proof is Ankura Trust's **off-chain** attestation. The tool renders this honestly (backing `unknown` until that attestation is parsed) rather than inventing a green. The narrowness is the point.
+The two flagship cards, side by side, are the whole thesis in one screen:
+
+**BENJI — genuine green, through regulation** (live EDGAR read, filing dated 2026-06-30). Franklin's on-chain token is a share of FOBXX, a registered '40-Act Government money-market fund (SEC series S000067043). Its monthly **N-MFP3** filing reports whole-fund net assets of **$753.2M**, a market-based (shadow) NAV pegged at **$1.0000** across every June observation, holdings **100% U.S. Treasuries / agency debt / Treasury repo**, and a 53-day WAM — regulator-grade, independent, machine-readable. The on-chain Ethereum slice is only **$47.8M (6.35% of the fund)**, so a naive `supply × NAV` check would fire a **~1,475% false red**. `tokenization_mode: tranche_of_registered_fund` skips that category-inapplicable reconciliation and confers green via **regulated structure + NAV integrity** instead. This is the one flagship that goes genuinely green — and it does so through regulation, not a reconstructed balance.
+
+**OUSG — honest unknown, because on-chain doesn't mean verifiable here** (verified on-chain 2026-07-07). The "read OUSG's BUIDL on-chain" story does **not** hold: every Ondo-published Ethereum address holds **0 BUIDL**; the reserves sit in segregated accounts at third-party custodians (Clear Street / Coinbase Custody) for the Ondo I LP SPV — addresses Ondo does not attribute publicly. On-chain reconstruction resolves **0%** of OUSG's backing to an attributable wallet, and its real proof is Ankura Trust's **off-chain** attestation. The tool renders `unknown` (until that attestation is parsed) rather than inventing a green.
+
+That pair is the point: here is what real verification looks like, and here is how rarely this asset class can actually offer it. The narrowness is the product.
 
 ## A note on addresses
 
