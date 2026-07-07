@@ -12,16 +12,20 @@ import {
     CONFIDENCE_RANK,
     demoteConfidence,
     type AssetIdentifiers,
+    type EvidenceItem,
     type FieldConflict,
     type FieldMap,
     type FieldName,
     type FieldObject,
     type FieldValue,
     type NormalizedAssetRecord,
+    type TokenizationMode,
 } from "@/lib/contracts";
 
 export interface Contribution {
     fields: FieldMap;
+    /** Backing evidence this source contributes (v1.1). */
+    backing_evidence?: EvidenceItem[];
     identifiers?: Partial<AssetIdentifiers>;
 }
 
@@ -121,17 +125,36 @@ function mergeIdentifiers(
     return id;
 }
 
+/**
+ * Collects backing evidence across contributions. Evidence items are NOT
+ * reconciled the way scalar fields are: each is a partial, independently-sourced
+ * view of the reserve (some on-chain, some filed, some attested). They are
+ * concatenated; the backing resolver aggregates coverage and detects
+ * cross-source disagreement itself (a divergence between two INDEPENDENT sources
+ * is a red, and that judgement belongs in the resolver, not here).
+ */
+export function collectEvidence(contributions: Contribution[]): EvidenceItem[] {
+    const out: EvidenceItem[] = [];
+    for (const c of contributions) {
+        if (c.backing_evidence) out.push(...c.backing_evidence);
+    }
+    return out;
+}
+
 /** Assembles a full Contract A record from adapter contributions. */
 export function reconcile(
     assetId: string,
     fallback: { chainId: number; address: string },
     contributions: Contribution[],
+    tokenizationMode: TokenizationMode = "unknown",
 ): NormalizedAssetRecord {
     const { fields, conflicts } = reconcileFields(contributions);
     return {
         asset_id: assetId,
         identifiers: mergeIdentifiers(assetId, fallback, contributions),
         fields,
+        backing_evidence: collectEvidence(contributions),
+        tokenization_mode: tokenizationMode,
         conflicts,
         ingested_at: new Date().toISOString(),
     };

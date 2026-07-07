@@ -16,6 +16,7 @@ import type {
     FieldName,
     FieldObject,
     FieldValue,
+    TokenizationMode,
 } from "@/lib/contracts";
 import { formatAssetId } from "@/lib/chains";
 
@@ -26,6 +27,8 @@ export interface SeedAsset {
     disclosureUrl?: string;
     /** Human-verified fields (qualitative + reference), carried as verified. */
     seedFields?: FieldMap;
+    /** Whether the on-chain token is the whole fund or a slice of one. */
+    tokenizationMode?: TokenizationMode;
 }
 
 /** Builds a verified, manually-curated field object. */
@@ -61,6 +64,7 @@ const RAW: SeedAsset[] = [
             contract_address: "0x7712c34205737192402172409a8f7ccef8aa2aec",
             issuer_name: "BlackRock / Securitize",
         },
+        tokenizationMode: "fully_tokenized",
         seedFields: fields({
             wrapper_type: "private_fund",
             redemption_speed: "instant_capped",
@@ -79,6 +83,7 @@ const RAW: SeedAsset[] = [
             contract_address: "0x1b19c19393e2d034d8ff31ff34c81252fcbbee92",
             issuer_name: "Ondo Finance",
         },
+        tokenizationMode: "fully_tokenized",
         seedFields: fields({
             wrapper_type: "private_fund",
             jurisdiction: "us_qualified_purchaser",
@@ -93,6 +98,7 @@ const RAW: SeedAsset[] = [
             contract_address: "0x96f6ef951840721adbf46ac996b59e0235cb985c",
             issuer_name: "Ondo Finance",
         },
+        tokenizationMode: "fully_tokenized",
         seedFields: fields({
             wrapper_type: "spv",
             jurisdiction: "non_us_only",
@@ -107,6 +113,10 @@ const RAW: SeedAsset[] = [
             contract_address: "0x3ddc84940ab509c11b20b76b466933f40b750dc9",
             issuer_name: "Franklin Templeton",
         },
+        // On-chain BENJI is a SLICE of the ~$400M+ FOBXX registered fund; total
+        // reserves != on-chain supply x NAV, so EDGAR confers green via
+        // regulated structure + NAV integrity, not total-pool reconciliation.
+        tokenizationMode: "tranche_of_registered_fund",
         seedFields: fields({
             wrapper_type: "registered_fund_40act",
             redemption_speed: "daily",
@@ -122,6 +132,7 @@ const RAW: SeedAsset[] = [
             contract_address: "0x136471a34f6ef19fe571effc1ca711fdb8e49f2b",
             issuer_name: "Hashnote / Circle",
         },
+        tokenizationMode: "fully_tokenized",
         seedFields: fields({
             wrapper_type: "private_fund",
             jurisdiction: "us_qualified_purchaser",

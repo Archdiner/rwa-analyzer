@@ -59,11 +59,114 @@ export interface FieldObject<T extends FieldValue = FieldValue> {
 // ── Domain enums (extraction + reference vocab) ──────────────────────────────
 
 /**
- * How reserves are proven. `unknown` (feed not classified) is intentionally
- * distinct from `self_reported` (known to be issuer-reported) and `none`
- * (no reserve feed at all).
+ * How an oracle/feed reserve is proven. `unknown` (feed not classified) is
+ * intentionally distinct from `self_reported` (known to be issuer-reported) and
+ * `none` (no reserve feed at all). Used to classify `oracle_por` evidence into
+ * an independence rank.
  */
 export type ReservesMethod = "auditor_attested" | "self_reported" | "unknown" | "none";
+
+// ── Backing evidence (v1.1 — the Evidence-Source Hierarchy) ──────────────────
+//
+// Backing is a TWO-AXIS judgement, and the two axes must never be conflated:
+//
+//   INDEPENDENCE (who wrote the evidence) sets the CEILING COLOR a backing
+//     verdict may reach. A regulator filing or an on-chain read of an
+//     independently-proven reserve can reach green; an issuer self-report,
+//     however cleanly parsed, cannot.
+//   EXTRACTION (how we got the number) sets the CONFIDENCE LABEL. An on-chain
+//     read is `verified`; a parsed PDF figure is `auto` ("check the citation").
+//
+// The old single reserves_value/reserves_method pair is replaced by an ARRAY of
+// evidence items: real reserves are assembled from several partial sources
+// (some on-chain, some filed, some attested), and each carries its own axes.
+//
+// ───────────────────────────────────────────────────────────────────────────
+// PRINCIPLE — GREEN RESTS ONLY ON GUARDS THE MODEL CANNOT ARGUE WITH.
+//
+// A green backing verdict may rest ONLY on checks that are arithmetic or string
+// equality: the verbatim-substring citation match, and the supply×NAV
+// reconciliation. Neither can be talked around by the model that produced the
+// data — one is `indexOf`, the other is subtraction.
+//
+// `parse_confidence` is the model grading its own homework. It is a FLOOR
+// (a low score CAN block a green) but NEVER a GATE (a high score can NEVER, by
+// itself, earn one). Do not promote parse_confidence to a gate: six months from
+// now it will be tempting, and it would let a confidently-wrong parse mint a
+// false green. The whole product exists to refuse exactly that.
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Where a piece of backing evidence comes from. Drives the independence axis. */
+export type EvidenceSourceType =
+    | "regulator_filing" // SEC EDGAR N-MFP/N-CSR etc. — regulator-grade, independent
+    | "onchain_holdings" // reserves read directly on-chain (reconstruction)
+    | "auditor_attestation" // independent auditor sign-off
+    | "admin_report" // fund administrator report (stronger than issuer-self)
+    | "custodian_feed" // custodian-published balance
+    | "oracle_por" // Chainlink/other PoR feed (independence set by classification)
+    | "issuer_selfreport"; // issuer's own transparency page/PDF — self-reported
+
+/**
+ * Nominal independence (0–5) per source type. `onchain_holdings` and
+ * `oracle_por` are CONDITIONAL: the adapter stamps the real independence on each
+ * item (on-chain reconstruction of an unproven token cannot exceed that token's
+ * own backing independence — the anti-laundering ceiling; an oracle feed's rank
+ * depends on whether it is auditor-attested vs self-reported).
+ */
+export const NOMINAL_INDEPENDENCE: Record<EvidenceSourceType, number> = {
+    regulator_filing: 5,
+    onchain_holdings: 5,
+    auditor_attestation: 4,
+    oracle_por: 4,
+    admin_report: 3,
+    custodian_feed: 3,
+    issuer_selfreport: 1,
+};
+
+/** Independence at or above this is "independent enough" to support green. */
+export const GREEN_INDEPENDENCE_FLOOR = 3;
+
+/** Below this LLM self-reported parse confidence, a parsed figure cannot
+ *  support a green (a FLOOR — see the principle above; never used as a gate). */
+export const PARSE_CONFIDENCE_FLOOR = 0.85;
+
+/** How a single evidence item's number was obtained (its confidence label). */
+export type EvidenceExtraction = "onchain_read" | "structured" | "llm_extracted";
+
+/** One piece of backing evidence. Reserves are the sum across items. */
+export interface EvidenceItem {
+    source_type: EvidenceSourceType;
+    /** Actual independence 0–5 for THIS item (may be ceilinged below nominal). */
+    independence: number;
+    /** USD value of reserves this item accounts for. */
+    reserves_value: number;
+    /** Share of the asset's backing this item covers, 0–100. */
+    coverage_pct: number;
+    /** ISO-8601 timestamp the evidence was true at source. */
+    as_of: string;
+    extraction: EvidenceExtraction;
+    confidence: Confidence;
+    /** LLM self-reported 0–1, or null for non-LLM. A floor, never a gate. */
+    parse_confidence: number | null;
+    /** Required when extraction === "llm_extracted"; null otherwise. */
+    citation: Citation | null;
+    /** Provenance label for the source expander. */
+    source: string;
+    /** Optional caveat surfaced to the user (e.g. underlying not proven). */
+    note?: string;
+}
+
+/**
+ * Whether the on-chain token IS the fund, or a slice of a bigger fund. Decides
+ * how reserves reconcile:
+ *   fully_tokenized             — reserves reconcile against supply × NAV.
+ *   tranche_of_registered_fund  — on-chain supply is a slice of a larger
+ *                                 regulated fund; total-pool reconciliation is
+ *                                 category-inapplicable. A regulator filing
+ *                                 confers green via regulated structure + NAV
+ *                                 integrity, not supply×NAV matching.
+ */
+export type TokenizationMode = "fully_tokenized" | "tranche_of_registered_fund" | "unknown";
 
 export type WrapperType =
     | "registered_fund_40act"
@@ -106,8 +209,6 @@ export type YieldSource =
 export type FieldName =
     | "supply"
     | "nav"
-    | "reserves_value"
-    | "reserves_method"
     | "auditor"
     | "custodian"
     | "issuer_domicile"
@@ -148,6 +249,12 @@ export interface NormalizedAssetRecord {
     asset_id: string;
     identifiers: AssetIdentifiers;
     fields: FieldMap;
+    /** Backing evidence (v1.1). Reserves are assembled from these items; the
+     *  backing resolver reads them, never a single reserves field. */
+    backing_evidence: EvidenceItem[];
+    /** Whether the on-chain token is the whole fund or a slice (drives how
+     *  reserves reconcile). Defaults to "unknown" until curated/derived. */
+    tokenization_mode: TokenizationMode;
     conflicts: FieldConflict[];
     ingested_at: string;
     /** Marks whether the slow qualitative pass has run yet (two-phase ingest). */

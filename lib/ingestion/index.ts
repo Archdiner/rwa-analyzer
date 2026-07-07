@@ -12,7 +12,13 @@
 // call only happens on the deferred path, behind the API's rate limiter.
 // ---------------------------------------------------------------------------
 
-import type { AssetIdentifiers, FieldMap, FieldName, NormalizedAssetRecord } from "@/lib/contracts";
+import type {
+    AssetIdentifiers,
+    FieldMap,
+    FieldName,
+    NormalizedAssetRecord,
+    TokenizationMode,
+} from "@/lib/contracts";
 import { parseAssetId } from "@/lib/chains";
 import { onchainAdapter } from "@/lib/ingestion/adapters/onchain";
 import { chainlinkAdapter } from "@/lib/ingestion/adapters/chainlink";
@@ -37,6 +43,8 @@ export interface IngestOptions {
     seedFields?: FieldMap;
     /** Known disclosure URL (seed / reference), skips web-search discovery. */
     disclosureUrl?: string;
+    /** Curated tokenization mode (seed) — decides how reserves reconcile. */
+    tokenizationMode?: TokenizationMode;
 }
 
 function qualitativePending(fields: FieldMap): boolean {
@@ -66,7 +74,7 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
         rwaxyz,
     ];
 
-    const record = reconcile(assetId, parsed, contributions);
+    const record = reconcile(assetId, parsed, contributions, opts.tokenizationMode ?? "unknown");
 
     // A seeded asset is human-curated and authoritative — never run LLM
     // extraction over it (that could only conflict with or downgrade verified

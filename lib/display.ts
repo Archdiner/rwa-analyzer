@@ -20,8 +20,6 @@ export const DIMENSION_TITLES: Record<string, string> = {
 export const FIELD_LABELS: Partial<Record<FieldName, string>> = {
     supply: "On-chain supply",
     nav: "Net asset value",
-    reserves_value: "Reserves",
-    reserves_method: "Reserve verification",
     auditor: "Auditor",
     custodian: "Custodian",
     issuer_domicile: "Issuer domicile",

@@ -30,5 +30,10 @@ Three modules behind two FROZEN contracts in `lib/contracts.ts`:
 - A verdict's confidence is capped at the min confidence of its inputs (`finalize` in `lib/computation/util.ts`).
 - Every `llm_extracted` field's citation must be a verbatim substring of the source doc, or it drops to `unverifiable` (`lib/ingestion/citations.ts`).
 - Reconciliation only ever DEMOTES confidence on source conflict, never promotes.
+- **Green rests only on guards the model cannot argue with.** A green backing verdict may rest only on arithmetic/string-equality checks — the verbatim-substring citation match and the supply×NAV reconciliation. `parse_confidence` (the model grading its own homework) is a FLOOR (a low score can block a green) but NEVER a GATE (a high score can never earn one). Do not promote `parse_confidence` to a gate. See the principle block in `lib/contracts.ts`.
+
+### Backing is two-axis (v1.1)
+
+Backing reads `NormalizedAssetRecord.backing_evidence[]`, not a single reserves field. Each `EvidenceItem` carries an INDEPENDENCE (who wrote it → ceiling color) and an EXTRACTION method (how we read it → confidence label). On-chain reconstruction of a held token cannot exceed that token's own backing independence (anti-laundering ceiling). `tokenization_mode` decides how reserves reconcile: `fully_tokenized` reconciles against supply×NAV; `tranche_of_registered_fund` gets green via regulated structure + NAV integrity, not total-pool matching.
 
 Do not reshape the contracts casually. Add fields additively; never repurpose one. The LLM belongs only in ingestion.

@@ -10,6 +10,7 @@ import type {
     AssetIdentifiers,
     Citation,
     Confidence,
+    EvidenceItem,
     FieldMap,
     FieldObject,
     FieldValue,
@@ -19,6 +20,9 @@ import type { ParsedAssetId } from "@/lib/chains";
 
 export interface AdapterResult {
     fields: FieldMap;
+    /** Backing evidence contributed by this adapter (v1.1). Reconcile concats
+     *  these across adapters into the record's backing_evidence[]. */
+    backing_evidence?: EvidenceItem[];
     identifiers?: Partial<AssetIdentifiers>;
     /** Raw source document text, when an adapter fetched one (issuer docs). */
     sourceText?: string;

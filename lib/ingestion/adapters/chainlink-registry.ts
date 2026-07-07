@@ -8,12 +8,31 @@
 // INTEGRITY RULE: never add a feed address you have not verified on Chainlink's
 // official feed page (https://data.chain.link). A wrong address that produces a
 // confident "fully backed" verdict is the worst-case failure for this product.
-// An unclassified asset MUST resolve to no feed (reserves_method: none) rather
-// than a guess. `reserves_method: "unknown"` is reserved for a feed we read but
-// have not classified as attested vs self-reported.
+// An unclassified asset MUST resolve to no feed (contributes no evidence, so
+// backing stays `unknown`/`red`) rather than a guess. The feed's `reservesMethod`
+// maps to an independence rank (see independenceForReservesMethod): a
+// self-reported feed cannot support green, `unknown` sits just below the green
+// floor (amber), and only `auditor_attested` is green-eligible.
 // ---------------------------------------------------------------------------
 
 import type { ReservesMethod } from "@/lib/contracts";
+
+/**
+ * Maps an oracle feed's reserve classification to an independence rank (0–5) for
+ * its `oracle_por` evidence item. An auditor-attested feed is independent
+ * (green-eligible); a self-reported one is not; an unclassified feed we read but
+ * have not verified sits just below the green floor (amber, not red).
+ */
+export function independenceForReservesMethod(m: Exclude<ReservesMethod, "none">): number {
+    switch (m) {
+        case "auditor_attested":
+            return 4;
+        case "self_reported":
+            return 1;
+        case "unknown":
+            return 2;
+    }
+}
 
 export interface PorFeedEntry {
     /** Chain the FEED lives on (often Ethereum mainnet, even for L2 assets). */

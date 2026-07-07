@@ -20,6 +20,7 @@ function seedOptions(assetId: string): IngestOptions {
         identifiers: seed.identifiers,
         seedFields: seed.seedFields,
         disclosureUrl: seed.disclosureUrl,
+        tokenizationMode: seed.tokenizationMode,
     };
 }
 

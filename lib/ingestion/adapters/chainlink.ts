@@ -10,7 +10,11 @@
 import { parseAbi, type Address } from "viem";
 import { getClient, formatAssetId as buildAssetId } from "@/lib/chains";
 import { field, type AdapterResult, EMPTY } from "@/lib/ingestion/adapters/base";
-import { lookupPorFeed } from "@/lib/ingestion/adapters/chainlink-registry";
+import {
+    lookupPorFeed,
+    independenceForReservesMethod,
+} from "@/lib/ingestion/adapters/chainlink-registry";
+import type { EvidenceItem } from "@/lib/contracts";
 import type { ParsedAssetId } from "@/lib/chains";
 
 const AGGREGATOR_V3_ABI = parseAbi([
@@ -43,18 +47,22 @@ export async function chainlinkAdapter(asset: ParsedAssetId): Promise<AdapterRes
         const result: AdapterResult = { fields: {} };
 
         if (entry.kind === "reserves") {
-            result.fields.reserves_value = field(value, {
+            // The number is a verified on-chain read; the METHOD sets how
+            // independent it is (auditor-attested vs self-reported vs unknown).
+            const evidence: EvidenceItem = {
+                source_type: "oracle_por",
+                independence: independenceForReservesMethod(entry.reservesMethod),
+                reserves_value: value,
+                coverage_pct: 100,
+                as_of: asOf,
+                extraction: "onchain_read",
+                confidence: "verified",
+                parse_confidence: null,
+                citation: null,
                 source: "chainlink_por",
-                method: "onchain_read",
-                confidence: "verified",
-                as_of: asOf,
-            });
-            result.fields.reserves_method = field(entry.reservesMethod, {
-                source: "chainlink_registry",
-                method: "reference_api",
-                confidence: "verified",
-                as_of: asOf,
-            });
+                note: `Chainlink PoR feed, classified ${entry.reservesMethod}.`,
+            };
+            result.backing_evidence = [evidence];
         } else {
             result.fields.nav = field(value, {
                 source: "chainlink_por",

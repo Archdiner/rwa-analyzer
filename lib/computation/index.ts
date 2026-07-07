@@ -18,7 +18,7 @@ import { assessStructure } from "@/lib/computation/structure";
 
 export function computeAssessment(record: NormalizedAssetRecord): Assessment {
     const dimensions = {
-        backing: assessBacking(record.fields),
+        backing: assessBacking(record),
         redemption: assessRedemption(record.fields),
         access: assessAccess(record.fields),
         structure: assessStructure(record.fields),
