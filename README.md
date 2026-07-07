@@ -1,8 +1,18 @@
 # RWA Reliability Analyzer
 
-Paste any tokenized real-world asset (within reason) and get a transparent, per-dimension reliability read where **every claim shows its source and its confidence**. Auto-extracted data never wears the same badge as verified data, and the tool says plainly what it doesn't know.
+Tell it where you are and roughly how much you have. It filters tokenized-asset yield down to what you can **actually reach**, ranks it **safety-first**, and shows — for each — exactly where the trust bottoms out. A list makes yield look free; this prices the risk next to it. Or paste any asset by address for the full per-dimension read, where **every claim shows its source and its confidence** and auto-extracted data never wears the same badge as verified data.
 
-This rates **assets** (research on public facts). It is not a rating agency and **not financial advice**.
+This rates **assets** on public facts and **never holds your money** — you deposit with the provider directly. It is not a rating agency and **not financial advice**.
+
+### The decision surface (more than a list)
+
+The landing is the tool. A profile (jurisdiction + amount) drives a pure, tested engine (`lib/decision.ts`) that does three things a static list can't:
+
+1. **Reachability** — closes what you can't legally touch (US-retail vs qualified-purchaser vs non-US), with the plain reason, instead of making you decode legal pages.
+2. **Safety-first ranking** — safest backing first, yield only breaking ties within a tier. A green 4.15% ranks above an unknown 6.5%, because yield is the compensation for risk.
+3. **The trust boundary on every row** — the one line naming where on-chain verification stops and institutional trust begins.
+
+Public read at `GET /api/universe` (optionally `?jurisdiction=&amount=`).
 
 ## How it works
 

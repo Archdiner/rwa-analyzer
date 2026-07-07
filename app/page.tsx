@@ -1,47 +1,42 @@
-import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
-import { allSeeds } from "@/lib/seed/assets";
+import DecisionExplorer from "@/components/DecisionExplorer";
+import { getUniverse } from "@/lib/service";
 
-export default function Home() {
-    const seeds = allSeeds();
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+    const universe = await getUniverse();
 
     return (
-        <div className="mx-auto max-w-2xl px-5 py-16 sm:py-24">
+        <div className="mx-auto max-w-2xl px-5 py-14 sm:py-20">
             <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-text">
-                Is this tokenized asset what it claims to be?
+                Yield you can actually reach — and how far the safety really goes.
             </h1>
             <p className="mt-3 text-sm sm:text-base text-text-muted leading-relaxed">
-                A transparent, per-dimension reliability read on tokenized real-world assets. Every claim shows its
-                source and its confidence. Auto-extracted data never wears the same badge as verified data — and we
-                say plainly what we don&apos;t know.
+                Tell it where you are and roughly how much you have. It filters tokenized-asset yield down to what
+                you can legally touch, ranks it <span className="text-text">safety first</span>, and shows — for
+                each — where the trust bottoms out. A list makes yield look free. This prices the risk next to it.
             </p>
 
             <div className="mt-8">
-                <SearchBar autoFocus />
+                <DecisionExplorer universe={universe} />
             </div>
 
-            <div className="mt-10">
-                <p className="text-xs uppercase tracking-wide text-text-faint">Flagship assets</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                    {seeds.map(({ assetId, seed }) => (
-                        <Link
-                            key={assetId}
-                            href={`/a/${encodeURIComponent(assetId)}`}
-                            className="rounded-lg border border-border bg-[color:var(--bg-elev)] px-3 py-1.5 text-sm text-text-muted hover:text-text hover:border-[color:var(--verified)] transition-colors"
-                        >
-                            <span className="font-mono">{seed.identifiers.symbol}</span>
-                        </Link>
-                    ))}
+            <div className="mt-12 border-t border-border pt-8">
+                <p className="text-xs uppercase tracking-wide text-text-faint">Or look up any asset by address</p>
+                <div className="mt-3">
+                    <SearchBar />
                 </div>
             </div>
 
-            <div className="mt-12 grid gap-3 text-xs text-text-faint">
+            <div className="mt-10 grid gap-3 text-xs text-text-faint">
                 <p>
-                    Coverage tiers: <span className="text-verified">Verified</span> (human-checked flagship data),{" "}
-                    <span className="text-auto">Auto</span> (LLM-extracted + on-chain, verify yourself),{" "}
-                    <span className="text-text-muted">Unverifiable</span> (on-chain only, no qualitative sources found).
+                    Safety read: <span className="text-green">verified</span> means backing is independently proven
+                    (a regulator filing or an on-chain reserve read), <span className="text-amber">caution</span>{" "}
+                    means partly proven or self-reported, <span className="text-text-muted">unknown</span> means we
+                    can&apos;t verify it yet — never a fake green. Yields are approximate; verify at the provider.
                 </p>
-                <p>This tool rates assets on public facts. It is not a rating agency and not financial advice.</p>
+                <p>Information on public facts, not financial advice. We rate assets, not decisions. We never hold your money.</p>
             </div>
         </div>
     );

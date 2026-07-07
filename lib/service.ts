@@ -8,10 +8,13 @@
 // off the response path.
 // ---------------------------------------------------------------------------
 
+import type { EvidenceItem, Jurisdiction, RedemptionSpeed } from "@/lib/contracts";
 import type { IngestOptions } from "@/lib/ingestion";
 import { ingestQuant, ingestQualitative } from "@/lib/ingestion";
 import { getStoredAsset, saveAsset, type StoredAsset } from "@/lib/store";
-import { getSeed } from "@/lib/seed/assets";
+import { getSeed, allSeeds } from "@/lib/seed/assets";
+import { EVIDENCE_TRUST_BOUNDARY } from "@/lib/display";
+import type { AssetSummary } from "@/lib/decision";
 
 function seedOptions(assetId: string): IngestOptions {
     const seed = getSeed(assetId);
@@ -56,6 +59,74 @@ export async function getAsset(assetId: string): Promise<AssetResult | null> {
         },
         needsFill: record.qualitative_pending === true,
     };
+}
+
+// ── Universe (the decision surface) ──────────────────────────────────────────
+
+/** Where trust bottoms out for the strongest (most independent) evidence item. */
+function strongestTrustBoundary(evidence: EvidenceItem[]): string | null {
+    const usable = evidence.filter((e) => e.confidence !== "unverifiable");
+    if (usable.length === 0) return null;
+    const top = usable.reduce((best, e) => (e.independence > best.independence ? e : best));
+    return EVIDENCE_TRUST_BOUNDARY[top.source_type] ?? null;
+}
+
+function numField(data: StoredAsset, name: "min_investment_usd" | "yield_apy"): number | null {
+    const v = data.record.fields[name]?.value;
+    return typeof v === "number" ? v : null;
+}
+
+/** Flattens a stored asset into the summary the decision engine ranks. */
+export function toSummary(data: StoredAsset, providerUrl?: string | null): AssetSummary {
+    const { record, assessment } = data;
+    const f = record.fields;
+    const backing = assessment.dimensions.backing;
+    return {
+        asset_id: record.asset_id,
+        symbol: record.identifiers.symbol,
+        name: record.identifiers.name,
+        issuer_name: record.identifiers.issuer_name ?? null,
+        chain_id: record.identifiers.chain_id,
+        provider_url: providerUrl ?? null,
+        jurisdiction: (f.jurisdiction?.value as Jurisdiction | undefined) ?? null,
+        min_investment_usd: numField(data, "min_investment_usd"),
+        yield_apy: numField(data, "yield_apy"),
+        redemption_speed: (f.redemption_speed?.value as RedemptionSpeed | undefined) ?? null,
+        backing_flag: backing.flag,
+        backing_reason: backing.reason,
+        backing_confidence: backing.confidence,
+        trust_boundary: strongestTrustBoundary(record.backing_evidence ?? []),
+    };
+}
+
+let universeCache: { at: number; data: AssetSummary[] } | null = null;
+const UNIVERSE_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * The assessed seed universe as decision-ready summaries. Cached in memory (TTL)
+ * so the landing doesn't re-ingest every asset on each load; in production the
+ * cron keeps the store warm and this reads through it.
+ */
+export async function getUniverse(): Promise<AssetSummary[]> {
+    if (universeCache && Date.now() - universeCache.at < UNIVERSE_TTL_MS) {
+        return universeCache.data;
+    }
+
+    const summaries = await Promise.all(
+        allSeeds().map(async ({ assetId, seed }) => {
+            try {
+                const r = await getAsset(assetId);
+                return r ? toSummary(r.data, seed.providerUrl) : null;
+            } catch (err) {
+                console.error(`[universe] failed to assemble ${assetId}:`, err);
+                return null;
+            }
+        }),
+    );
+
+    const data = summaries.filter((s): s is AssetSummary => s !== null);
+    universeCache = { at: Date.now(), data };
+    return data;
 }
 
 /**

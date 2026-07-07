@@ -2,7 +2,14 @@
 // Display helpers — labels + styling maps shared by UI components
 // ---------------------------------------------------------------------------
 
-import type { Confidence, Flag, FieldName, EvidenceSourceType, EvidenceExtraction } from "@/lib/contracts";
+import type {
+    Confidence,
+    Flag,
+    FieldName,
+    EvidenceSourceType,
+    EvidenceExtraction,
+    RedemptionSpeed,
+} from "@/lib/contracts";
 
 const CHAIN_NAMES: Record<number, string> = { 1: "Ethereum", 8453: "Base", 43114: "Avalanche" };
 
@@ -53,6 +60,30 @@ export function confidenceLabel(c: Confidence): string {
     if (c === "verified") return "Verified";
     if (c === "auto") return "Auto-extracted";
     return "Unverifiable";
+}
+
+/** How fast a user can get their money back out. */
+export const REDEMPTION_LABELS: Record<RedemptionSpeed, string> = {
+    instant: "Instant exit",
+    instant_capped: "Instant (capped)",
+    daily: "Daily exit",
+    t_plus_n: "Exit in days",
+    none: "No redemption",
+    unknown: "Exit speed unknown",
+};
+
+/** Plain, one-line safety read for the decision surface (safety leads). */
+export function safetyHeadline(flag: Flag): string {
+    switch (flag) {
+        case "green":
+            return "Backing independently verified";
+        case "amber":
+            return "Backing partly verified — read the caveat";
+        case "red":
+            return "Backing does not reconcile";
+        default:
+            return "Backing not verifiable yet";
+    }
 }
 
 // ── Backing evidence labels (v1.1) ──────────────────────────────────────────
