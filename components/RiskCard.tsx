@@ -1,0 +1,99 @@
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { coverageTier, type Assessment, type NormalizedAssetRecord } from "@/lib/contracts";
+import { chainDisplay, FIELD_LABELS } from "@/lib/display";
+import DimensionRow from "@/components/DimensionRow";
+import PendingRefresher from "@/components/PendingRefresher";
+
+const TIER_STYLE: Record<string, string> = {
+    Verified: "border-[color:var(--verified)] text-[color:var(--verified)]",
+    Auto: "border-[color:var(--auto)] text-[color:var(--auto)] confidence-auto",
+    Unverifiable: "border-[color:var(--unverifiable)] text-text-faint",
+};
+
+export default function RiskCard({
+    record,
+    assessment,
+    computedAt,
+    qualitativePending,
+}: {
+    record: NormalizedAssetRecord;
+    assessment: Assessment;
+    computedAt: string;
+    qualitativePending: boolean;
+}) {
+    const { identifiers, fields, conflicts } = record;
+    const tier = coverageTier(assessment.overall_confidence);
+    const dims = assessment.dimensions;
+
+    return (
+        <article className="rounded-2xl border border-border bg-[color:var(--bg-elev)] overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-border">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                        <h1 className="text-lg font-semibold text-text truncate">{identifiers.name}</h1>
+                        <div className="mt-1 flex items-center gap-2 text-sm text-text-muted">
+                            <span className="font-mono">{identifiers.symbol}</span>
+                            <span className="text-text-faint">·</span>
+                            <span>{chainDisplay(identifiers.chain_id)}</span>
+                            {identifiers.issuer_name && (
+                                <>
+                                    <span className="text-text-faint">·</span>
+                                    <span>{identifiers.issuer_name}</span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <div
+                            className={`inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-mono uppercase tracking-wide ${TIER_STYLE[tier]}`}
+                            title="Coverage tier = lowest confidence among assessed dimensions. Not a risk grade."
+                        >
+                            {tier}
+                        </div>
+                        <p className="mt-1 text-[10px] text-text-faint">coverage tier</p>
+                    </div>
+                </div>
+            </div>
+
+            {qualitativePending && (
+                <div className="flex items-center gap-2 px-6 py-2.5 bg-[color:var(--bg-elev-2)] border-b border-border text-xs text-text-muted">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Analyzing issuer documents — structure, redemption, and eligibility will fill in shortly.
+                    <PendingRefresher />
+                </div>
+            )}
+
+            {conflicts.length > 0 && (
+                <div className="flex items-start gap-2 px-6 py-3 bg-[color:var(--amber-bg)] border-b border-border text-xs text-amber">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <span>
+                        Sources disagree on{" "}
+                        {conflicts.map((c) => FIELD_LABELS[c.field] ?? c.field).join(", ")} — treated as a risk signal
+                        and confidence downgraded.
+                    </span>
+                </div>
+            )}
+
+            {/* Access first — you need to know if you can even touch it. */}
+            <div className="px-6">
+                <div className="my-4 rounded-xl border border-[color:var(--gate-bg)] bg-[color:var(--bg-elev-2)] px-4">
+                    <DimensionRow dimensionKey="access" dimension={dims.access} fields={fields} />
+                </div>
+            </div>
+
+            {/* Remaining dimensions */}
+            <div className="px-6 pb-2">
+                <DimensionRow dimensionKey="backing" dimension={dims.backing} fields={fields} />
+                <DimensionRow dimensionKey="redemption" dimension={dims.redemption} fields={fields} />
+                <DimensionRow dimensionKey="structure" dimension={dims.structure} fields={fields} />
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-border flex items-center justify-between text-[11px] text-text-faint">
+                <span>Information, not financial advice. We rate assets, not decisions.</span>
+                <span>computed {new Date(computedAt).toISOString().slice(0, 16).replace("T", " ")}Z</span>
+            </div>
+        </article>
+    );
+}
