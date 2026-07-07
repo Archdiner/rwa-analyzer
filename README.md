@@ -9,13 +9,12 @@ This rates **assets** (research on public facts). It is not a rating agency and 
 Three modules behind two frozen contracts. Any module can be rewritten in isolation as long as the two shapes hold.
 
 ```
- SOURCES            MODULE 1 (Ingestion)      Contract A       MODULE 2 (Computation)     Contract B      MODULE 3 (App)
- on-chain           source adapters       Normalized Asset      deterministic rules      Assessment        lookup +
- Chainlink PoR  →   + OpenAI extractor →      Record        →   (no LLM, no grade)   →      Object      →  risk card
- DeFiLlama          + reconciliation      {field:{value,                             {dim:{flag,reason,
- rwa.xyz (opt)                              source,method,                             inputs,confidence,
- issuer docs                                confidence,as_of,                          sources}}
-                                            citation}}
+ SOURCES              MODULE 1 (Ingestion)      Contract A       MODULE 2 (Computation)     Contract B      MODULE 3 (App)
+ on-chain (supply)    source adapters       Normalized Asset      deterministic rules      Assessment        lookup +
+ on-chain holdings →  + OpenAI extractor →      Record        →   (no LLM, no grade)   →      Object      →  risk card
+ Chainlink PoR        + reconciliation      {fields, backing_                          {dim:{flag,reason,
+ EDGAR / DeFiLlama                            evidence[],                               inputs,confidence,
+ issuer docs                                  tokenization_mode}                        sources}}
 ```
 
 Two invariants enforced in code:
@@ -25,9 +24,19 @@ Two invariants enforced in code:
 
 The LLM lives only in ingestion (prose → structured fields). Scoring is deterministic rules, so every output is explainable and improvable one rule at a time.
 
-### The edge: `reserves_method`
+### The edge: the evidence hierarchy (two axes)
 
-The Chainlink adapter records *how* reserves are proven — `auditor_attested`, `self_reported`, `unknown` (feed we haven't classified), or `none`. Most tools treat any Proof-of-Reserve feed as truth; a self-reported reserve is downgraded to amber even when the numbers reconcile.
+Backing reads a `backing_evidence[]` array (Contract A), not a single reserves number. Each item carries two independent axes:
+
+- **Independence** (who wrote the evidence) sets the **ceiling color**. A regulator filing (EDGAR) or an on-chain read of an independently-proven reserve can reach green; an issuer self-report — however cleanly parsed — cannot.
+- **Extraction** (how we read the number) sets the **confidence label**. An on-chain read is `verified`; a parsed PDF figure is `auto` ("check the citation").
+
+Two correctness rules make this honest:
+
+- **Anti-laundering.** On-chain reconstruction that holds another token inherits *that token's* backing independence as its ceiling (recursive, cycle-safe). Reading that a fund holds an amber token proves composition, not backing — so it stays amber, never green.
+- **Slice-funds.** `tokenization_mode` distinguishes a fully-tokenized fund (reserves reconcile against supply × NAV) from a tranche of a larger registered fund (green comes from a regulator filing + NAV integrity; total-pool reconciliation is category-inapplicable).
+
+**Principle:** green rests only on guards the model cannot argue with — the supply × NAV reconciliation (arithmetic) and the verbatim-substring citation (string equality). `parse_confidence` is a **floor** (a low score can block a green) but **never a gate** (a high score can never earn one).
 
 ### Citation validation (integrity spine)
 
@@ -43,7 +52,7 @@ Every LLM-extracted field must carry a `text_span`. That span is validated as a 
 
 | Dimension | Reads | `unknown` when |
 |---|---|---|
-| Backing & verification | supply, nav, reserves, reserves_method | nav or supply missing (never a false green off NAV=1.00) |
+| Backing & verification | supply, nav, backing_evidence[], tokenization_mode | nav/supply missing (never a false green off NAV=1.00), or reserve evidence not yet retrieved |
 | Redemption & liquidity | redemption_speed, redemption_cap | speed unknown |
 | Access & eligibility | jurisdiction, min_investment, kyc | nothing known (red here = eligibility restriction, not danger) |
 | Issuer & structure | wrapper_type, custodian, domicile | wrapper unknown |
@@ -92,6 +101,12 @@ npm run seed     # ingest + store flagship assets
 ## Out of scope (v1)
 
 Smart-contract/oracle depth, secondary-liquidity depth, duration modeling, human-verification queue, comparison/portfolio/watchlists, alerting, historical trends, accounts, public API. See the spec for the v2+ roadmap.
+
+## The honest headline
+
+Verified-**green** backing on tokenized RWAs is genuinely hard to produce, and this tool produces it where it can and refuses to fake it everywhere else. The flagship money funds ship **no** Chainlink Proof-of-Reserve feed, so the only paths to a real green are a **regulator filing** (EDGAR, for registered funds) or **on-chain reconstruction** (reading reserves directly) — and reconstruction only works when the reserve wallet is **published and attributable**.
+
+Worked example — **OUSG** (verified on-chain 2026-07-07): the "read OUSG's BUIDL on-chain" story does **not** hold. Every Ondo-published Ethereum address holds **0 BUIDL**; the reserves sit in segregated accounts at third-party custodians (Clear Street / Coinbase Custody) for the Ondo I LP SPV — addresses Ondo does not attribute publicly. So on-chain reconstruction resolves **0%** of OUSG's backing to an attributable wallet, and OUSG's real proof is Ankura Trust's **off-chain** attestation. The tool renders this honestly (backing `unknown` until that attestation is parsed) rather than inventing a green. The narrowness is the point.
 
 ## A note on addresses
 

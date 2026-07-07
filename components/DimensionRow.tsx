@@ -8,15 +8,17 @@ export default function DimensionRow({
     dimensionKey,
     dimension,
     fields,
+    noBorder = false,
 }: {
     dimensionKey: string;
     dimension: DimensionAssessment;
     fields: FieldMap;
+    noBorder?: boolean;
 }) {
     const isAccess = dimensionKey === "access";
 
     return (
-        <section className="border-t border-border py-5 first:border-t-0">
+        <section className={`py-5 ${noBorder ? "" : "border-t border-border first:border-t-0"}`}>
             <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                     <div className="flex items-center gap-2.5">

@@ -21,6 +21,7 @@ import type {
 } from "@/lib/contracts";
 import { parseAssetId } from "@/lib/chains";
 import { onchainAdapter } from "@/lib/ingestion/adapters/onchain";
+import { onchainHoldingsAdapter } from "@/lib/ingestion/adapters/onchain-holdings";
 import { chainlinkAdapter } from "@/lib/ingestion/adapters/chainlink";
 import { defillamaAdapter } from "@/lib/ingestion/adapters/defillama";
 import { rwaxyzAdapter } from "@/lib/ingestion/adapters/rwaxyz";
@@ -75,6 +76,18 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
     ];
 
     const record = reconcile(assetId, parsed, contributions, opts.tokenizationMode ?? "unknown");
+
+    // On-chain reconstruction runs AFTER supply/NAV are known, so coverage can
+    // be measured against supply x NAV. Only assets with a verified reserve
+    // wallet contribute (none of the flagships do — see reserves-registry.ts).
+    const supplyVal = record.fields.supply?.value;
+    const navVal = record.fields.nav?.value;
+    const expectedUsd =
+        typeof supplyVal === "number" && typeof navVal === "number" ? supplyVal * navVal : 0;
+    const holdings = await onchainHoldingsAdapter(parsed, expectedUsd);
+    if (holdings.backing_evidence?.length) {
+        record.backing_evidence.push(...holdings.backing_evidence);
+    }
 
     // A seeded asset is human-curated and authoritative — never run LLM
     // extraction over it (that could only conflict with or downgrade verified

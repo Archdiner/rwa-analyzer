@@ -2,6 +2,7 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { coverageTier, type Assessment, type NormalizedAssetRecord } from "@/lib/contracts";
 import { chainDisplay, FIELD_LABELS } from "@/lib/display";
 import DimensionRow from "@/components/DimensionRow";
+import BackingEvidence from "@/components/BackingEvidence";
 import PendingRefresher from "@/components/PendingRefresher";
 
 const TIER_STYLE: Record<string, string> = {
@@ -84,7 +85,15 @@ export default function RiskCard({
 
             {/* Remaining dimensions */}
             <div className="px-6 pb-2">
-                <DimensionRow dimensionKey="backing" dimension={dims.backing} fields={fields} />
+                <div className="border-t border-border first:border-t-0">
+                    <DimensionRow dimensionKey="backing" dimension={dims.backing} fields={fields} noBorder />
+                    {record.backing_evidence?.length > 0 && (
+                        <div className="-mt-2 pb-5">
+                            <p className="mb-1 text-[11px] uppercase tracking-wide text-text-faint">Backing evidence</p>
+                            <BackingEvidence evidence={record.backing_evidence} />
+                        </div>
+                    )}
+                </div>
                 <DimensionRow dimensionKey="redemption" dimension={dims.redemption} fields={fields} />
                 <DimensionRow dimensionKey="structure" dimension={dims.structure} fields={fields} />
             </div>

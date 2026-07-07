@@ -2,7 +2,7 @@
 // Display helpers — labels + styling maps shared by UI components
 // ---------------------------------------------------------------------------
 
-import type { Confidence, Flag, FieldName } from "@/lib/contracts";
+import type { Confidence, Flag, FieldName, EvidenceSourceType, EvidenceExtraction } from "@/lib/contracts";
 
 const CHAIN_NAMES: Record<number, string> = { 1: "Ethereum", 8453: "Base", 43114: "Avalanche" };
 
@@ -53,4 +53,32 @@ export function confidenceLabel(c: Confidence): string {
     if (c === "verified") return "Verified";
     if (c === "auto") return "Auto-extracted";
     return "Unverifiable";
+}
+
+// ── Backing evidence labels (v1.1) ──────────────────────────────────────────
+
+export const EVIDENCE_SOURCE_LABELS: Record<EvidenceSourceType, string> = {
+    regulator_filing: "Regulator filing",
+    onchain_holdings: "On-chain holdings",
+    auditor_attestation: "Auditor attestation",
+    admin_report: "Administrator report",
+    custodian_feed: "Custodian feed",
+    oracle_por: "Oracle PoR feed",
+    issuer_selfreport: "Issuer self-report",
+};
+
+export const EVIDENCE_EXTRACTION_LABELS: Record<EvidenceExtraction, string> = {
+    onchain_read: "on-chain read",
+    structured: "structured data",
+    llm_extracted: "parsed",
+};
+
+/** Independence 0–5 -> short word. Green-eligible at >= 3. */
+export function independenceLabel(n: number): string {
+    if (n >= 5) return "regulator / on-chain proof";
+    if (n >= 4) return "independent (auditor)";
+    if (n >= 3) return "independent";
+    if (n >= 2) return "unclassified";
+    if (n >= 1) return "self-reported";
+    return "unproven";
 }
