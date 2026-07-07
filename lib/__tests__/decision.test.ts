@@ -20,6 +20,8 @@ function a(
         jurisdiction: opts.jurisdiction,
         min_investment_usd: opts.min ?? null,
         yield_apy: opts.yield_apy ?? null,
+        yield_kind: opts.yield_apy != null ? "stated_rate" : null,
+        yield_as_of: opts.yield_apy != null ? "2026-07-01T00:00:00Z" : null,
         redemption_speed: null,
         backing_flag: opts.flag ?? "unknown",
         backing_reason: "",

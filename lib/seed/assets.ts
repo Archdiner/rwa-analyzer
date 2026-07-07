@@ -32,6 +32,9 @@ export interface SeedAsset {
     seedFields?: FieldMap;
     /** Whether the on-chain token is the whole fund or a slice of one. */
     tokenizationMode?: TokenizationMode;
+    /** Curated DeFiLlama pool id — this asset's yield is a live pool APY, not a
+     *  stated fund rate. Set for DeFi assets; MMFs keep their stated rate. */
+    defillamaPool?: string;
 }
 
 const YIELD_AS_OF = "2026-07-01T00:00:00Z";
@@ -166,11 +169,11 @@ const RAW: SeedAsset[] = [
         },
     },
     {
-        // A permissionless, higher-yield DeFi contrast: anyone can hold it, no
-        // KYC, any amount — but its backing is a protocol's collateral, not a
-        // regulator-filed or independently-attested reserve, so our engine reads
-        // it as an honest `unknown`. This is the "12% is 12% for a reason" row:
-        // reachability and yield up, verifiable safety down.
+        // A permissionless DeFi contrast: anyone can hold it, no KYC, any amount.
+        // Its backing is a protocol's on-chain collateral, not a regulator-filed
+        // or independently-attested reserve, so our engine reads it as an honest
+        // `unknown`. Yield is a LIVE pool APY (Sky Savings Rate), not a stated
+        // fund rate — the source of the number is part of the number.
         identifiers: {
             name: "Savings DAI",
             symbol: "sDAI",
@@ -180,14 +183,36 @@ const RAW: SeedAsset[] = [
         },
         providerUrl: "https://sky.money/",
         tokenizationMode: "fully_tokenized",
-        seedFields: {
-            ...fields({
-                redemption_speed: "instant",
-                jurisdiction: "permissionless",
-                yield_source: "active_strategy",
-            }),
-            yield_apy: approxYield(6.5),
+        defillamaPool: "c8a24fee-ec00-4f38-86c0-9f6daebc4225", // sky-lending SDAI
+        seedFields: fields({
+            redemption_speed: "instant",
+            jurisdiction: "permissionless",
+            yield_source: "active_strategy",
+        }),
+    },
+    {
+        // The sharp foil for "yield is the price of risk": private credit. syrupUSDC
+        // is Maple's yield-bearing token — the yield exists because institutions
+        // borrow against it and are trusted to repay. No reserve to read on-chain,
+        // no regulator filing; backing reads honest `unknown`, and exit is not
+        // instant (a notice period, not a redeem button). Higher yield sits next
+        // to visibly lower verifiable safety and slower exit — the whole lesson in
+        // one row. Yield is a LIVE pool APY, not a stated rate.
+        identifiers: {
+            name: "Syrup USDC",
+            symbol: "syrupUSDC",
+            chain_id: 1,
+            contract_address: "0x80ac24aa929eaf5013f6436cda2a7ba190f5cc0b",
+            issuer_name: "Maple Finance",
         },
+        providerUrl: "https://syrup.fi/",
+        tokenizationMode: "fully_tokenized",
+        defillamaPool: "43641cf5-a92e-416b-bce9-27113d3c0db6", // maple USDC
+        seedFields: fields({
+            redemption_speed: "t_plus_n",
+            jurisdiction: "permissionless",
+            yield_source: "private_credit",
+        }),
     },
 ];
 

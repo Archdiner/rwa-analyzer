@@ -24,6 +24,7 @@ function seedOptions(assetId: string): IngestOptions {
         seedFields: seed.seedFields,
         disclosureUrl: seed.disclosureUrl,
         tokenizationMode: seed.tokenizationMode,
+        defillamaPool: seed.defillamaPool,
     };
 }
 
@@ -76,6 +77,17 @@ function numField(data: StoredAsset, name: "min_investment_usd" | "yield_apy"): 
     return typeof v === "number" ? v : null;
 }
 
+/**
+ * A yield's kind IS part of the number: a live DeFi pool APY (aggregator source)
+ * is a different thing from a fund's stated rate (a seeded, manual figure), and
+ * the card must not blur them. Derived from the field's provenance, not guessed.
+ */
+function yieldKind(data: StoredAsset): AssetSummary["yield_kind"] {
+    const y = data.record.fields.yield_apy;
+    if (!y) return null;
+    return y.method === "aggregator" ? "pool_apy" : "stated_rate";
+}
+
 /** Flattens a stored asset into the summary the decision engine ranks. */
 export function toSummary(data: StoredAsset, providerUrl?: string | null): AssetSummary {
     const { record, assessment } = data;
@@ -91,6 +103,8 @@ export function toSummary(data: StoredAsset, providerUrl?: string | null): Asset
         jurisdiction: (f.jurisdiction?.value as Jurisdiction | undefined) ?? null,
         min_investment_usd: numField(data, "min_investment_usd"),
         yield_apy: numField(data, "yield_apy"),
+        yield_kind: yieldKind(data),
+        yield_as_of: f.yield_apy?.as_of ?? null,
         redemption_speed: (f.redemption_speed?.value as RedemptionSpeed | undefined) ?? null,
         backing_flag: backing.flag,
         backing_reason: backing.reason,

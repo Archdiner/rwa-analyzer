@@ -59,6 +59,10 @@ export interface AssetSummary {
     jurisdiction: Jurisdiction | null;
     min_investment_usd: number | null;
     yield_apy: number | null;
+    /** Kind of yield number: a live DeFi pool APY vs a fund's stated rate. */
+    yield_kind: "pool_apy" | "stated_rate" | null;
+    /** When the yield figure was observed (ISO), for the "as of" stamp. */
+    yield_as_of: string | null;
     redemption_speed: RedemptionSpeed | null;
     backing_flag: Flag;
     backing_reason: string;

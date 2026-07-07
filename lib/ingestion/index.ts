@@ -47,6 +47,8 @@ export interface IngestOptions {
     disclosureUrl?: string;
     /** Curated tokenization mode (seed) — decides how reserves reconcile. */
     tokenizationMode?: TokenizationMode;
+    /** Curated DeFiLlama pool id for this asset's native live yield (DeFi assets). */
+    defillamaPool?: string;
 }
 
 function qualitativePending(fields: FieldMap): boolean {
@@ -63,7 +65,7 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
 
     const [chainlink, defillama, edgar, rwaxyz] = await Promise.all([
         chainlinkAdapter(parsed),
-        defillamaAdapter(parsed),
+        defillamaAdapter(parsed, opts.defillamaPool),
         edgarAdapter(parsed),
         rwaxyzAdapter(parsed, symbolHint),
     ]);

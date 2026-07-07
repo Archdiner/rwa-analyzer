@@ -30,6 +30,7 @@ Three modules behind two FROZEN contracts in `lib/contracts.ts`:
 - A verdict's confidence is capped at the min confidence of its inputs (`finalize` in `lib/computation/util.ts`).
 - Every `llm_extracted` field's citation must be a verbatim substring of the source doc, or it drops to `unverifiable` (`lib/ingestion/citations.ts`).
 - Reconciliation only ever DEMOTES confidence on source conflict, never promotes.
+- **A yield is held to the same bar as everything else.** It is `auto` with an as-of stamp, never `verified`; it passes a sanity band (`sanitizeApy`, 0–100%) so a glitched feed can't print "1,400%"; and its KIND is part of the number — a live DeFi pool APY (`aggregator` source, curated `defillamaPool` id) is labeled distinctly from a fund's stated rate (seeded, `manual`). See `lib/ingestion/adapters/defillama.ts` and `yieldKind` in `lib/service.ts`.
 - **Green rests only on guards the model cannot argue with.** A green backing verdict may rest only on arithmetic/string-equality checks — the verbatim-substring citation match and the supply×NAV reconciliation. `parse_confidence` (the model grading its own homework) is a FLOOR (a low score can block a green) but NEVER a GATE (a high score can never earn one). Do not promote `parse_confidence` to a gate. See the principle block in `lib/contracts.ts`.
 
 ### Backing is two-axis (v1.1)

@@ -72,6 +72,23 @@ export const REDEMPTION_LABELS: Record<RedemptionSpeed, string> = {
     unknown: "Exit speed unknown",
 };
 
+/**
+ * The kind of yield number, shown next to it — because the source of a number is
+ * part of the number. A live pool APY reads differently than a stated fund rate.
+ */
+export function yieldKindLabel(kind: "pool_apy" | "stated_rate" | null): string {
+    if (kind === "pool_apy") return "live pool APY";
+    if (kind === "stated_rate") return "stated rate";
+    return "yield";
+}
+
+/** ISO timestamp -> a compact "as of" date (YYYY-MM-DD), or null. */
+export function asOfShort(iso: string | null): string | null {
+    if (!iso) return null;
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+}
+
 /** Plain, one-line safety read for the decision surface (safety leads). */
 export function safetyHeadline(flag: Flag): string {
     switch (flag) {

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ExternalLink, Lock } from "lucide-react";
 import type { Flag } from "@/lib/contracts";
-import type { ReachableAsset, ClosedAsset } from "@/lib/decision";
-import { REDEMPTION_LABELS, safetyHeadline } from "@/lib/display";
+import type { AssetSummary, ReachableAsset, ClosedAsset } from "@/lib/decision";
+import { REDEMPTION_LABELS, safetyHeadline, yieldKindLabel, asOfShort } from "@/lib/display";
 import FlagChip from "@/components/FlagChip";
 
 const FLAG_BORDER: Record<Flag, string> = {
@@ -12,11 +12,19 @@ const FLAG_BORDER: Record<Flag, string> = {
     unknown: "var(--unknown)",
 };
 
-function Yield({ apy }: { apy: number | null }) {
+function Yield({ asset }: { asset: AssetSummary }) {
+    const stamp = asOfShort(asset.yield_as_of);
     return (
         <div className="text-right shrink-0">
-            <div className="font-mono text-lg text-text">{apy != null ? `${apy.toFixed(2)}%` : "—"}</div>
-            <div className="text-[10px] uppercase tracking-wide text-text-faint">yield · approx</div>
+            <div className="font-mono text-lg text-text">
+                {asset.yield_apy != null ? `${asset.yield_apy.toFixed(2)}%` : "—"}
+            </div>
+            <div className="text-[10px] uppercase tracking-wide text-text-faint">
+                {yieldKindLabel(asset.yield_kind)}
+            </div>
+            {asset.yield_apy != null && stamp && (
+                <div className="text-[10px] text-text-faint">as of {stamp}</div>
+            )}
         </div>
     );
 }
@@ -38,7 +46,7 @@ export function ReachableRow({ item }: { item: ReachableAsset }) {
                     </div>
                     <p className="mt-2 text-sm text-text-muted">{safetyHeadline(asset.backing_flag)}.</p>
                 </div>
-                <Yield apy={asset.yield_apy} />
+                <Yield asset={asset} />
             </div>
 
             {asset.trust_boundary && (
