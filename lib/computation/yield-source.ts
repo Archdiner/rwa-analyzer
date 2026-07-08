@@ -112,6 +112,28 @@ export function assessYieldSource(record: NormalizedAssetRecord): DimensionAsses
         );
     }
 
+    // The organic rate is the verified core a green rests on. If it could not be
+    // read, a green is impossible - report emissions if we have them, else
+    // unknown. (Guards the null-organic + zero-reward path from a false green.)
+    if (!organicKnown) {
+        if (rewardKnown && reward.value! > 0) {
+            return decide(
+                "amber",
+                `Reward emissions of ~${fmt(reward.value!)}% detected, but the organic borrow rate could not be read on-chain, so yield provenance is unverified.${TRUST_BOUNDARY}`,
+                [reward],
+                reward.as_of,
+                data.underlying_ceiling,
+            );
+        }
+        return decide(
+            "unknown",
+            "The organic yield rate could not be read on-chain, so yield provenance is not assessed.",
+            [organic],
+            organic.as_of,
+            data.underlying_ceiling,
+        );
+    }
+
     // Organic verified but emissions could not be read: report the organic rate,
     // but the total mix is unverified, so this is never a clean green.
     if (organicKnown && !rewardKnown) {
@@ -126,9 +148,15 @@ export function assessYieldSource(record: NormalizedAssetRecord): DimensionAsses
 
     // Both known.
     const total = organic.value! + reward.value!;
+    const organicIsVerified = organic.confidence === "verified";
+    const rewardIsVerified = reward.confidence === "verified";
+
     if (total < NEGLIGIBLE_YIELD) {
+        // No material yield and no emissions. Green only if the (zero) organic
+        // rate is itself a verified on-chain read; an auto read stays amber.
+        const flag: Flag = organicIsVerified && rewardIsVerified ? "green" : "amber";
         return decide(
-            "green",
+            flag,
             `Supply yield is ~0% with no reward emissions; the yield is fully accounted for on-chain.${TRUST_BOUNDARY}`,
             [organic, reward],
             organic.as_of,
@@ -137,8 +165,6 @@ export function assessYieldSource(record: NormalizedAssetRecord): DimensionAsses
     }
 
     const organicShare = organic.value! / total;
-    const organicIsVerified = organic.confidence === "verified";
-    const rewardIsVerified = reward.confidence === "verified";
 
     if (organicShare >= ORGANIC_GREEN_SHARE && organicIsVerified && rewardIsVerified) {
         const reason =
