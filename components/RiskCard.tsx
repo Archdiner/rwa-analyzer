@@ -1,7 +1,7 @@
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { coverageTier, type Assessment, type NormalizedAssetRecord } from "@/lib/contracts";
 import { chainDisplay, FIELD_LABELS } from "@/lib/display";
-import { nextExpectedUpdate } from "@/lib/computation/freshness";
+import { nextExpectedUpdate, nextExpectedAt } from "@/lib/computation/freshness";
 import DimensionRow from "@/components/DimensionRow";
 import BackingEvidence from "@/components/BackingEvidence";
 import PendingRefresher from "@/components/PendingRefresher";
@@ -35,6 +35,20 @@ export default function RiskCard({
         : null;
     const backingNextUpdate =
         dims.backing.freshness && strongestEvidence ? nextExpectedUpdate(strongestEvidence) : null;
+
+    // v1.2 on-chain dimensions render only for lending assets (data present).
+    // Their next-refresh date comes from the read's as_of + a daily cadence.
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const hasYieldSource = dims.yield_source && dims.yield_source.flag !== "unknown";
+    const hasMarketRisk = dims.market_risk && dims.market_risk.flag !== "unknown";
+    const yieldNextUpdate =
+        hasYieldSource && dims.yield_source.freshness && record.yield_source_data
+            ? nextExpectedAt(record.yield_source_data.organic_apy.as_of, DAY_MS)
+            : null;
+    const marketRiskNextUpdate =
+        hasMarketRisk && dims.market_risk.freshness && record.market_risk_data
+            ? nextExpectedAt(record.market_risk_data.utilization.as_of, DAY_MS)
+            : null;
 
     return (
         <article className="rounded-2xl border border-border bg-[color:var(--bg-elev)] overflow-hidden">
@@ -112,6 +126,23 @@ export default function RiskCard({
                 </div>
                 <DimensionRow dimensionKey="redemption" dimension={dims.redemption} fields={fields} />
                 <DimensionRow dimensionKey="structure" dimension={dims.structure} fields={fields} />
+                {/* v1.2 on-chain yield/risk dimensions - shown only for lending assets. */}
+                {hasYieldSource && (
+                    <DimensionRow
+                        dimensionKey="yield_source"
+                        dimension={dims.yield_source}
+                        fields={fields}
+                        freshnessNextUpdate={yieldNextUpdate}
+                    />
+                )}
+                {hasMarketRisk && (
+                    <DimensionRow
+                        dimensionKey="market_risk"
+                        dimension={dims.market_risk}
+                        fields={fields}
+                        freshnessNextUpdate={marketRiskNextUpdate}
+                    />
+                )}
             </div>
 
             {/* Footer */}

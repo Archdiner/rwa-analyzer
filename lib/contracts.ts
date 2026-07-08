@@ -232,6 +232,113 @@ export type YieldSource =
     | "equity"
     | "unknown";
 
+// ── Yield-source + market-risk dimensions (v1.2 - additive) ──────────────────
+//
+// Two NEW deterministic dimensions generalize the engine from "is the backing
+// real?" to "where does this yield come from, and where does proof stop?".
+// Both are ADDITIVE to the frozen contracts and keep the same honesty: a green
+// rests only on an on-chain read (arithmetic the model cannot argue with), and
+// `unknown` is a first-class outcome - a signal that cannot be read is never
+// assumed benign. See docs/plans/…-yield-source-lending-adapter-plan.md.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * What activity generates an asset's yield. `emissions` = reward tokens minted
+ * (inflationary), `lending_interest` = borrow interest paid by borrowers
+ * (organic), `mixed` = both are material, `unknown` = not classifiable.
+ */
+export type YieldSourceKind =
+    | "lending_interest"
+    | "staking"
+    | "amm_fees"
+    | "perp_funding"
+    | "rwa_coupon"
+    | "emissions"
+    | "mixed"
+    | "unknown";
+
+/**
+ * Per-signal risk grade for the `market_risk` dimension. `unknown` is NOT
+ * benign: it means the signal could not be derived and is surfaced as such,
+ * never silently treated as `ok`.
+ */
+export type RiskSignalLevel = "ok" | "caution" | "critical" | "unknown";
+
+/**
+ * One raw read feeding a v1.2 dimension. Like `FieldObject`, but its `value` is
+ * NULLABLE: null means the accessor was unavailable on the running contract
+ * version (or a cross-ref failed), so the signal reads `unknown` downstream -
+ * never as 0. On-chain reads are `verified`; an aggregator cross-ref is `auto`.
+ */
+export interface DimensionRead<T extends FieldValue = number> {
+    value: T | null;
+    /** Provenance label, e.g. "aave:v3:pool", "aave:oracle", "defillama". */
+    source: string;
+    method: Method;
+    confidence: Confidence;
+    /** ISO-8601 timestamp the read was true at source (block/reserve time). */
+    as_of: string;
+}
+
+/**
+ * Additive Contract-A payload for the `yield_source` dimension. Decomposes an
+ * asset's yield into organic (borrow interest, on-chain-derived, `verified`) vs.
+ * inflationary (reward emissions, `auto` cross-ref). `reward_apy.value === null`
+ * means emissions could not be read - honestly `unknown`, never assumed 0.
+ */
+export interface YieldSourceData {
+    /** Organic supply APY (%) derived from the reserve's on-chain rate. */
+    organic_apy: DimensionRead<number>;
+    /** Reward/emissions APY (%). null value → emissions unknown, not 0. */
+    reward_apy: DimensionRead<number>;
+    /** Dominant kind, derived from the organic/reward split by the adapter. */
+    kind: YieldSourceKind;
+    /** Symbol of the underlying whose value the yield ultimately rests on. */
+    underlying_symbol: string;
+    /** Ceiling color the verdict may reach given the underlying's OWN
+     *  verification status (anti-laundering: you cannot be safer than the thing
+     *  you lent). Omitted = no known constraint applied. */
+    underlying_ceiling?: Flag;
+}
+
+/**
+ * Additive Contract-A payload for the `market_risk` dimension: the reserve's
+ * on-chain risk state. Every field is a `DimensionRead` so a value that cannot
+ * be read (e.g. a `deficit`/bad-debt accessor absent on the running version)
+ * carries `value: null` and grades `unknown`, never a false `ok`.
+ */
+export interface MarketRiskData {
+    /** Borrow utilization, 0–1 (totalBorrowed / totalSupplied). */
+    utilization: DimensionRead<number>;
+    /** Liquidity available to withdraw/borrow, in underlying units. */
+    available_liquidity: DimensionRead<number>;
+    total_supplied: DimensionRead<number>;
+    total_borrowed: DimensionRead<number>;
+    /** Supply/borrow caps in underlying units. 0 = disabled (Aave convention). */
+    supply_cap: DimensionRead<number>;
+    borrow_cap: DimensionRead<number>;
+    /** Loan-to-value, 0–1 (reserve-level config, not per-borrower). */
+    ltv: DimensionRead<number>;
+    /** Liquidation threshold, 0–1. Buffer = threshold − ltv. */
+    liquidation_threshold: DimensionRead<number>;
+    /** Reserve factor (protocol cut), 0–1. */
+    reserve_factor: DimensionRead<number>;
+    is_active: DimensionRead<boolean>;
+    is_frozen: DimensionRead<boolean>;
+    is_paused: DimensionRead<boolean>;
+    /** Collateral USD price from the protocol oracle. 0/null → cannot value. */
+    oracle_price: DimensionRead<number>;
+    /** The oracle contract/address that prices collateral - the trust boundary. */
+    oracle_source: DimensionRead<string>;
+    /** Bad debt / reserve deficit in USD. null value → not derivable → unknown. */
+    deficit: DimensionRead<number>;
+    /** Symbol of the reserve's underlying asset. */
+    underlying_symbol: string;
+    /** Ceiling color the verdict may reach given the underlying's OWN
+     *  verification status (anti-laundering). Omitted = no known constraint. */
+    underlying_ceiling?: Flag;
+}
+
 // ── Field registry ───────────────────────────────────────────────────────────
 
 /** The complete set of field keys a record may carry. */
@@ -288,6 +395,13 @@ export interface NormalizedAssetRecord {
     ingested_at: string;
     /** Marks whether the slow qualitative pass has run yet (two-phase ingest). */
     qualitative_pending?: boolean;
+    /** On-chain yield decomposition (v1.2, additive). Present only for assets a
+     *  yield-source adapter resolved (e.g. Aave v3 reserves); absent → the
+     *  `yield_source` dimension reads `unknown`. */
+    yield_source_data?: YieldSourceData;
+    /** On-chain market-risk state (v1.2, additive). Present only for lending
+     *  reserves; absent → the `market_risk` dimension reads `unknown`. */
+    market_risk_data?: MarketRiskData;
 }
 
 // ── Contract B - Assessment ──────────────────────────────────────────────────
@@ -295,7 +409,13 @@ export interface NormalizedAssetRecord {
 /** A dimension verdict. `unknown` is a first-class outcome, not an error. */
 export type Flag = "green" | "amber" | "red" | "unknown";
 
-export type DimensionKey = "backing" | "redemption" | "access" | "structure";
+export type DimensionKey =
+    | "backing"
+    | "redemption"
+    | "access"
+    | "structure"
+    | "yield_source"
+    | "market_risk";
 
 export interface DimensionAssessment {
     flag: Flag;

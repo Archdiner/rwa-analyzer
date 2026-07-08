@@ -44,6 +44,18 @@ export function downgradeFlag(flag: Flag): Flag {
     return flag;
 }
 
+/** Flag goodness rank (green best) for the anti-laundering ceiling. */
+const FLAG_RANK: Record<Flag, number> = { red: 0, unknown: 1, amber: 2, green: 3 };
+
+/**
+ * Caps a flag at a ceiling color (anti-laundering: "you cannot be safer than
+ * the thing you lent"). Never returns better than `ceiling`, and never promotes
+ * a flag that is already at or below the ceiling.
+ */
+export function capFlag(flag: Flag, ceiling: Flag): Flag {
+    return FLAG_RANK[flag] > FLAG_RANK[ceiling] ? ceiling : flag;
+}
+
 /**
  * Builds a dimension verdict with the confidence cap applied. `used` is the set
  * of input fields the verdict actually depended on; its min confidence caps the
