@@ -17,8 +17,6 @@
 // ---------------------------------------------------------------------------
 
 import {
-    minConfidence,
-    type Confidence,
     type DimensionAssessment,
     type DimensionRead,
     type FieldName,
@@ -27,10 +25,8 @@ import {
     type NormalizedAssetRecord,
     type RiskSignalLevel,
 } from "@/lib/contracts";
-import { capFlag } from "@/lib/computation/util";
-import { applyFreshnessAt } from "@/lib/computation/freshness";
+import { finalizeReadDimension, unknownDimension } from "@/lib/computation/dimension";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const INPUTS: FieldName[] = [];
 
 // Utilization bands.
@@ -157,14 +153,10 @@ function overallFlag(signals: Signal[]): Flag {
     return "green";
 }
 
-function unknownDim(reason: string): DimensionAssessment {
-    return { flag: "unknown", reason, inputs: [], confidence: "unverifiable", sources: [] };
-}
-
 export function assessMarketRisk(record: NormalizedAssetRecord): DimensionAssessment {
     const data: MarketRiskData | undefined = record.market_risk_data;
     if (!data) {
-        return unknownDim("No on-chain market-risk data for this asset; market risk is not assessed.");
+        return unknownDimension("No on-chain market-risk data for this asset; market risk is not assessed.");
     }
 
     const signals: Signal[] = [
@@ -196,18 +188,15 @@ export function assessMarketRisk(record: NormalizedAssetRecord): DimensionAssess
     }
     reason += OFFCHAIN_CAVEAT;
 
-    // Confidence caps at the min of the reads used (all on-chain -> verified).
+    // Confidence caps at the min of the reads used (all on-chain -> verified);
+    // then the shared finalize applies the ceiling + freshness.
     const usedReads: DimensionRead[] = [data.utilization, data.total_supplied, data.oracle_price, data.deficit];
-    const confidence: Confidence = minConfidence(...usedReads.map((r) => r.confidence));
-    const sources = [...new Set(usedReads.map((r) => r.source))];
-
-    // Anti-laundering ceiling, then freshness (both demote-only).
-    const capped = data.underlying_ceiling ? capFlag(flag, data.underlying_ceiling) : flag;
-    const cappedReason =
-        capped !== flag
-            ? `${reason} Capped at the underlying's own verification ceiling (${data.underlying_ceiling}); you cannot be safer than the asset you lent.`
-            : reason;
-    const fr = applyFreshnessAt(capped, cappedReason, data.utilization.as_of, DAY_MS, "On-chain read");
-
-    return { flag: fr.flag, reason: fr.reason, inputs: INPUTS, confidence, sources, freshness: fr.freshness };
+    return finalizeReadDimension({
+        flag,
+        reason,
+        used: usedReads,
+        asOf: data.utilization.as_of,
+        inputs: INPUTS,
+        ceiling: data.underlying_ceiling,
+    });
 }

@@ -18,8 +18,6 @@
 // ---------------------------------------------------------------------------
 
 import {
-    minConfidence,
-    type Confidence,
     type DimensionAssessment,
     type DimensionRead,
     type FieldName,
@@ -27,10 +25,9 @@ import {
     type NormalizedAssetRecord,
     type YieldSourceData,
 } from "@/lib/contracts";
-import { capFlag, read, usable } from "@/lib/computation/util";
-import { applyFreshnessAt } from "@/lib/computation/freshness";
+import { read, usable } from "@/lib/computation/util";
+import { finalizeReadDimension, unknownDimension } from "@/lib/computation/dimension";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const INPUTS: FieldName[] = ["yield_apy"];
 
 /** Organic must be at least this share of total yield to be a clean green. */
@@ -49,14 +46,8 @@ function fmt(apy: number): string {
     return apy.toFixed(apy >= 10 ? 0 : 1);
 }
 
-function unknownDim(reason: string): DimensionAssessment {
-    return { flag: "unknown", reason, inputs: [], confidence: "unverifiable", sources: [] };
-}
-
-/**
- * Builds the final verdict: applies the anti-laundering ceiling, then the
- * freshness gradient, and caps confidence at the min of the reads used.
- */
+/** Builds the final verdict via the shared on-chain finalize (ceiling ->
+ *  freshness -> confidence cap). */
 function decide(
     flag: Flag,
     reason: string,
@@ -64,21 +55,13 @@ function decide(
     asOf: string,
     ceiling?: Flag,
 ): DimensionAssessment {
-    const capped = ceiling ? capFlag(flag, ceiling) : flag;
-    const cappedReason =
-        capped !== flag
-            ? `${reason} Capped at the underlying's own verification ceiling (${ceiling}); you cannot be safer than the asset you lent.`
-            : reason;
-    const fr = applyFreshnessAt(capped, cappedReason, asOf, DAY_MS, "On-chain read");
-    const confidence: Confidence = used.length ? minConfidence(...used.map((u) => u.confidence)) : "unverifiable";
-    const sources = [...new Set(used.map((u) => u.source))];
-    return { flag: fr.flag, reason: fr.reason, inputs: INPUTS, confidence, sources, freshness: fr.freshness };
+    return finalizeReadDimension({ flag, reason, used, asOf, inputs: INPUTS, ceiling });
 }
 
 export function assessYieldSource(record: NormalizedAssetRecord): DimensionAssessment {
     const data: YieldSourceData | undefined = record.yield_source_data;
     if (!data) {
-        return unknownDim("No on-chain yield-source data for this asset; yield provenance is not assessed.");
+        return unknownDimension("No on-chain yield-source data for this asset; yield provenance is not assessed.");
     }
 
     const organic = data.organic_apy;
