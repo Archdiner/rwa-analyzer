@@ -14,7 +14,9 @@ import type {
     FieldMap,
     FieldObject,
     FieldValue,
+    MarketRiskData,
     Method,
+    YieldSourceData,
 } from "@/lib/contracts";
 import type { ParsedAssetId } from "@/lib/chains";
 
@@ -28,6 +30,11 @@ export interface AdapterResult {
     sourceText?: string;
     /** A disclosure/document URL discovered by this adapter (for doc fetch). */
     disclosureUrl?: string;
+    /** On-chain yield decomposition (v1.2). Only a yield-source adapter (Aave v3)
+     *  contributes this; threaded onto the record by the orchestrator. */
+    yield_source_data?: YieldSourceData;
+    /** On-chain market-risk state (v1.2). Only a lending adapter contributes it. */
+    market_risk_data?: MarketRiskData;
 }
 
 export type Adapter = (asset: ParsedAssetId) => Promise<AdapterResult>;
