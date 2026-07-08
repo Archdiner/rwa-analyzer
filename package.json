@@ -1,6 +1,7 @@
 {
   "name": "rwa-analyzer",
   "version": "0.1.0",
+  "description": "Machine-readable backing verification for tokenized real-world assets",
   "private": true,
   "bin": {
     "rwa-verify": "bin/rwa-verify.ts"

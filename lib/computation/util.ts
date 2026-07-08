@@ -24,7 +24,7 @@ const AUTO_NOTE = "Based on auto-extracted data.";
 /**
  * Returns a field only if it is present AND at least `auto` confidence. An
  * `unverifiable` field (e.g. a citation that failed validation) is treated as
- * missing — the rule reads it as `unknown`, never as fact.
+ * missing - the rule reads it as `unknown`, never as fact.
  */
 export function usable<T extends FieldValue>(f?: FieldObject<T>): FieldObject<T> | undefined {
     if (!f) return undefined;

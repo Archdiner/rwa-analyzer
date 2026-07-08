@@ -1,4 +1,4 @@
-// Shared test helpers (not a suite — no .test.ts suffix).
+// Shared test helpers (not a suite - no .test.ts suffix).
 import type {
     Citation,
     Confidence,

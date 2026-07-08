@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// GET /api/asset/{id} — cache-or-on-demand asset assessment
+// GET /api/asset/{id} - cache-or-on-demand asset assessment
 // ---------------------------------------------------------------------------
 // id = canonical asset_id "{chainId}:{address}". Two-phase: returns the fast
 // quant card immediately and defers the slow qualitative fill via `after`. Rate

@@ -1,26 +1,31 @@
 import type { Confidence } from "@/lib/contracts";
-import { confidenceLabel } from "@/lib/display";
 
 const STYLES: Record<Confidence, string> = {
-    verified: "border-[color:var(--verified)] text-[color:var(--verified)]",
-    auto: "border-[color:var(--auto)] text-[color:var(--auto)] confidence-auto",
-    unverifiable: "border-[color:var(--unverifiable)] text-[color:var(--text-faint)]",
+    verified: "border-border text-text-muted",
+    auto: "border-amber text-amber confidence-auto",
+    unverifiable: "border-border text-text-faint",
+};
+
+const SHORT: Record<Confidence, string> = {
+    verified: "verified",
+    auto: "auto",
+    unverifiable: "unverifiable",
+};
+
+const TITLE: Record<Confidence, string> = {
+    verified: "Independently checkable (on-chain read, attested feed, or reference API).",
+    auto: "Machine-derived (LLM/aggregator). Plausible but unconfirmed; verify at the source.",
+    unverifiable: "Required data was missing or a citation failed validation.",
 };
 
 export default function ConfidenceBadge({ confidence, size = "sm" }: { confidence: Confidence; size?: "sm" | "md" }) {
-    const pad = size === "md" ? "px-2.5 py-1 text-xs" : "px-2 py-0.5 text-[10px]";
+    const pad = size === "md" ? "px-2 py-0.5 text-[11px]" : "px-1.5 py-0.5 text-[10px]";
     return (
         <span
-            className={`inline-flex items-center gap-1 rounded-full border font-mono uppercase tracking-wide ${pad} ${STYLES[confidence]}`}
-            title={
-                confidence === "verified"
-                    ? "Independently checkable (on-chain read, attested feed, or reference API)."
-                    : confidence === "auto"
-                      ? "Machine-derived (LLM/aggregator). Plausible but unconfirmed — verify yourself."
-                      : "Required data was missing or a citation failed validation."
-            }
+            className={`inline-flex items-center rounded-[3px] border font-mono uppercase tracking-wider ${pad} ${STYLES[confidence]}`}
+            title={TITLE[confidence]}
         >
-            {confidenceLabel(confidence)}
+            {SHORT[confidence]}
         </span>
     );
 }

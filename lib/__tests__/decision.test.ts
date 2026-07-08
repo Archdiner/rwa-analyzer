@@ -37,7 +37,7 @@ const BUIDL = a("BUIDL", { jurisdiction: "us_qualified_purchaser", min: 5_000_00
 
 const UNIVERSE = [SDAI, BENJI, USDY, BUIDL];
 
-describe("evaluate — reachability", () => {
+describe("evaluate - reachability", () => {
     it("closes an asset restricted to a jurisdiction the user isn't in", () => {
         const r = evaluate(USDY, { jurisdiction: "us_retail", amount: "1k_10k" });
         expect(r).toMatchObject({ reason: expect.stringMatching(/non-US/i) });
@@ -62,7 +62,7 @@ describe("evaluate — reachability", () => {
     });
 });
 
-describe("decide — safety-first ranking", () => {
+describe("decide - safety-first ranking", () => {
     it("US retail: reaches BENJI + sDAI, closes non-US and QP-only", () => {
         const profile: UserProfile = { jurisdiction: "us_retail", amount: "1k_10k" };
         const { reachable, closed } = decide(UNIVERSE, profile);
@@ -73,7 +73,7 @@ describe("decide — safety-first ranking", () => {
     it("safety leads over yield: green BENJI ranks above higher-yield unknown sDAI", () => {
         const { reachable } = decide(UNIVERSE, { jurisdiction: "us_retail", amount: "1k_10k" });
         expect(reachable[0].asset.symbol).toBe("BENJI"); // 4.2%, green
-        expect(reachable[1].asset.symbol).toBe("sDAI"); // 6.5%, unknown — yield loses to safety
+        expect(reachable[1].asset.symbol).toBe("sDAI"); // 6.5%, unknown - yield loses to safety
     });
 
     it("non-US user reaches USDY + sDAI, not the US funds", () => {

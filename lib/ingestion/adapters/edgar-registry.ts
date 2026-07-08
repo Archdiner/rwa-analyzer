@@ -7,14 +7,14 @@
 //
 //   EDGAR only exists for funds registered under the 1940 Act. It is USELESS for
 //   OUSG (a 3(c)(7) private fund), USDY (a non-US note), BUIDL and USYC (private
-//   funds). It essentially exists for the BENJI class — a registered '40-Act
+//   funds). It essentially exists for the BENJI class - a registered '40-Act
 //   money-market fund. It buys one flagship, not the set. That narrowness is the
 //   point: verified green is genuinely rare, and this maps exactly where it's
 //   real.
 //
 // INTEGRITY: the (cik, seriesId) pair must be verified against EDGAR before use,
 // and the adapter re-checks that the fetched filing's seriesId matches this
-// entry — attributing another fund's filing would manufacture a false green.
+// entry - attributing another fund's filing would manufacture a false green.
 // ---------------------------------------------------------------------------
 
 export interface EdgarFundEntry {

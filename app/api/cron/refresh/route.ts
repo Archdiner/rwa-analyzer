@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// GET /api/cron/refresh — daily quant refresh of stored assets
+// GET /api/cron/refresh - daily quant refresh of stored assets
 // ---------------------------------------------------------------------------
 // Re-runs the fast quant ingest (supply/reserves/nav/yield) for the stalest
 // stored assets and recomputes their assessments. Qualitative fields change

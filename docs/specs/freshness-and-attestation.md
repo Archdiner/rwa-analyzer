@@ -1,6 +1,6 @@
 # Spec: Freshness Axis + Attestation Tier
 
-Status: proposed · Scope: additive to the frozen contracts · Author: design pass, Jul 2026
+Status: implemented · Scope: additive to the frozen contracts · Jul 2026
 
 Two changes that compose. **Freshness** makes evidence age a first-class,
 machine-readable axis instead of a binary cliff buried in prose. **Attestation

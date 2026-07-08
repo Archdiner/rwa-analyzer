@@ -4,7 +4,7 @@
 // Reads an asset's verified reserve wallet(s), values each held instrument, and
 // emits ONE onchain_holdings evidence item. Independence is ceilinged by what is
 // held (anti-laundering) via leafBackingIndependence. Assets with no registry
-// entry contribute nothing — which today is every flagship (see the OUSG finding
+// entry contribute nothing - which today is every flagship (see the OUSG finding
 // in reserves-registry.ts).
 // ---------------------------------------------------------------------------
 
@@ -24,7 +24,7 @@ import {
 } from "@/lib/ingestion/holdings";
 
 /**
- * @param expectedUsd supply × NAV — the AUM the reserve must cover. Coverage is
+ * @param expectedUsd supply × NAV - the AUM the reserve must cover. Coverage is
  *        measured against it; pass 0 if unknown (coverage then reads as 0%).
  */
 export async function onchainHoldingsAdapter(

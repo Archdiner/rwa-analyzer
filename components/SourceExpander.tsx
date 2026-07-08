@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ExternalLink } from "lucide-react";
+import { ChevronRight, ExternalLink } from "lucide-react";
 import type { FieldMap, FieldName, FieldValue } from "@/lib/contracts";
 import { FIELD_LABELS } from "@/lib/display";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
@@ -12,51 +12,55 @@ function formatValue(v: FieldValue): string {
     return String(v).replace(/_/g, " ");
 }
 
+/** A quiet, expandable source log. Shows the exact fields behind a dimension —
+ *  value, provenance, and any verbatim citation — as legible records. */
 export default function SourceExpander({ inputs, fields }: { inputs: FieldName[]; fields: FieldMap }) {
     const [open, setOpen] = useState(false);
     const present = inputs.map((name) => ({ name, field: fields[name] })).filter((x) => x.field);
 
     if (present.length === 0) {
-        return <p className="text-xs text-text-faint">No source data available for this dimension.</p>;
+        return <p className="mt-3 text-xs text-text-faint">No source data available for this dimension.</p>;
     }
 
     return (
-        <div>
+        <div className="mt-3">
             <button
                 onClick={() => setOpen((o) => !o)}
-                className="flex items-center gap-1 text-xs text-text-muted hover:text-text transition-colors"
+                className="inline-flex items-center gap-1 text-xs font-medium text-text-muted transition-colors hover:text-text"
             >
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+                <ChevronRight className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-90" : ""}`} />
                 {open ? "Hide" : "Show"} sources ({present.length})
             </button>
 
             {open && (
-                <ul className="mt-3 space-y-3">
+                <ul className="mt-3 divide-y divide-border overflow-hidden rounded-[3px] border border-border">
                     {present.map(({ name, field }) => (
-                        <li key={name} className="rounded-lg border border-border bg-[color:var(--bg-elev-2)] p-3">
+                        <li key={name} className="bg-bg-elev p-3">
                             <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs text-text-muted">{FIELD_LABELS[name] ?? name}</span>
+                                <span className="eyebrow">{FIELD_LABELS[name] ?? name}</span>
                                 <ConfidenceBadge confidence={field!.confidence} />
                             </div>
-                            <div className="mt-1 font-mono text-sm text-text">{formatValue(field!.value)}</div>
-                            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-faint">
+                            <div className="mt-1.5 font-mono text-sm text-text">{formatValue(field!.value)}</div>
+                            <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-text-faint">
                                 <span>source: {field!.source}</span>
                                 <span>method: {field!.method}</span>
                                 <span>as of: {field!.as_of.slice(0, 10)}</span>
                             </div>
                             {field!.citation && (
-                                <div className="mt-2 border-l-2 border-[color:var(--auto)] pl-2.5">
-                                    <p className="text-xs italic text-text-muted">“{field!.citation.text_span}”</p>
+                                <blockquote className="mt-2.5 border-l-2 border-primary pl-3">
+                                    <p className="text-[13px] italic leading-relaxed text-text-muted">
+                                        &ldquo;{field!.citation.text_span}&rdquo;
+                                    </p>
                                     <a
                                         href={field!.citation.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="mt-1 inline-flex items-center gap-1 text-[11px] text-verified hover:underline"
+                                        className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
                                     >
                                         <ExternalLink className="h-3 w-3" />
-                                        source document
+                                        Source document
                                     </a>
-                                </div>
+                                </blockquote>
                             )}
                         </li>
                     ))}

@@ -27,7 +27,7 @@ const POOLS: LlamaPool[] = [
     },
 ];
 
-describe("sanitizeApy — sanity floor/ceiling", () => {
+describe("sanitizeApy - sanity floor/ceiling", () => {
     it("passes a normal yield through unchanged", () => {
         expect(sanitizeApy(4.99)).toBe(4.99);
         expect(sanitizeApy(0)).toBe(0);

@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Asset service — get-or-ingest orchestration
+// Asset service - get-or-ingest orchestration
 // ---------------------------------------------------------------------------
 // Shared by the API route and the risk-card page. Implements the two-phase
 // cold-lookup: a cache miss runs the fast quant ingest and returns immediately

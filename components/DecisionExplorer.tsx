@@ -24,18 +24,30 @@ function Select<T extends string>({
 }) {
     return (
         <label className="flex-1">
-            <span className="mb-1.5 block text-xs uppercase tracking-wide text-text-faint">{label}</span>
-            <select
-                value={value}
-                onChange={(e) => onChange(e.target.value as T)}
-                className="w-full rounded-xl border border-border bg-[color:var(--bg-elev)] px-3 py-3 text-sm text-text focus:border-[color:var(--verified)] focus:outline-none"
-            >
-                {options.map((o) => (
-                    <option key={o.id} value={o.id}>
-                        {o.label}
-                    </option>
-                ))}
-            </select>
+            <span className="eyebrow mb-2 block">{label}</span>
+            <div className="relative">
+                <select
+                    value={value}
+                    onChange={(e) => onChange(e.target.value as T)}
+                    className="field w-full cursor-pointer appearance-none px-3 py-2.5 pr-9 text-sm text-text"
+                >
+                    {options.map((o) => (
+                        <option key={o.id} value={o.id}>
+                            {o.label}
+                        </option>
+                    ))}
+                </select>
+                <svg
+                    className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-text-faint"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    aria-hidden
+                >
+                    <path d="M2.5 4.5L6 8l3.5-3.5" />
+                </svg>
+            </div>
         </label>
     );
 }
@@ -51,7 +63,7 @@ export default function DecisionExplorer({ universe }: { universe: AssetSummary[
 
     return (
         <div>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-4 rounded-[3px] border border-border bg-bg-elev-2 p-4 sm:flex-row">
                 <Select
                     label="Where are you"
                     value={jurisdiction}
@@ -67,17 +79,16 @@ export default function DecisionExplorer({ universe }: { universe: AssetSummary[
             </div>
 
             <div className="mt-8">
-                <div className="flex items-baseline justify-between">
-                    <h2 className="text-sm font-medium text-text">
-                        {reachable.length} option{reachable.length === 1 ? "" : "s"} you can actually reach
-                    </h2>
-                    <span className="text-[11px] text-text-faint">ranked by safety, then yield</span>
+                <div className="flex items-baseline justify-between border-b border-border pb-2">
+                    <h3 className="text-sm font-semibold text-text">
+                        {reachable.length} option{reachable.length === 1 ? "" : "s"} you can reach
+                    </h3>
+                    <span className="eyebrow">Ranked by safety, then yield</span>
                 </div>
 
                 {reachable.length === 0 ? (
-                    <p className="mt-4 rounded-xl border border-border bg-[color:var(--bg-elev)] p-4 text-sm text-text-muted">
-                        Nothing in the current set is reachable from that profile. That&apos;s an honest result, not a
-                        bug — the tappable menu for some profiles is genuinely thin. Try a different location or amount.
+                    <p className="mt-4 rounded-[3px] border border-border bg-bg-elev p-4 text-sm text-text-muted">
+                        No assets in the current set match that profile. Try a different location or amount band.
                     </p>
                 ) : (
                     <ul className="mt-4 space-y-3">
@@ -89,9 +100,12 @@ export default function DecisionExplorer({ universe }: { universe: AssetSummary[
             </div>
 
             {closed.length > 0 && (
-                <div className="mt-8">
-                    <h2 className="text-sm font-medium text-text-faint">Closed to you</h2>
-                    <ul className="mt-3 space-y-2">
+                <div className="mt-10">
+                    <div className="flex items-baseline justify-between border-b border-border pb-2">
+                        <h3 className="text-sm font-semibold text-text-faint">Closed to you</h3>
+                        <span className="eyebrow">Eligibility, not risk</span>
+                    </div>
+                    <ul className="mt-4 space-y-2">
                         {closed.map((item) => (
                             <ClosedRow key={item.asset.asset_id} item={item} />
                         ))}

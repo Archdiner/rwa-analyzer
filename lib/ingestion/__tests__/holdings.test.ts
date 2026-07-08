@@ -33,7 +33,7 @@ describe("leafBackingIndependence (anti-laundering ceiling)", () => {
         expect(leafBackingIndependence(BUIDL, new Set(), {})).toBe(1);
     });
 
-    it("holding an unproven RWA (BUIDL) ceilings the holder at 1 — no laundering", () => {
+    it("holding an unproven RWA (BUIDL) ceilings the holder at 1 - no laundering", () => {
         const wallets = { [FUND]: entry([inst({ kind: "rwa_token", assetId: BUIDL, label: "BUIDL" })]) };
         expect(leafBackingIndependence(FUND, new Set(), wallets)).toBe(1);
     });
