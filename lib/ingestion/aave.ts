@@ -26,7 +26,10 @@ import type {
 
 const RAY = 1e27;
 const SECONDS_PER_YEAR = 31_536_000;
-const ORACLE_PRICE_DECIMALS = 8; // Aave oracle quotes USD with 8 decimals.
+// Aave's USD-base oracle quotes with 8 decimals. This is correct for the
+// ETH-mainnet registry; a future non-USD-base or different-decimal deployment
+// would need this read per-oracle (BASE_CURRENCY_UNIT) rather than hardcoded.
+const ORACLE_PRICE_DECIMALS = 8;
 
 /**
  * Converts an Aave reserve `liquidityRate` (ray-scaled annual rate) to a

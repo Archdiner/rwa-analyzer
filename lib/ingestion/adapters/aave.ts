@@ -96,10 +96,15 @@ async function defillamaRewardApy(underlying: Address, chainId: number): Promise
         const chain = chainId === 1 ? "Ethereum" : null;
         if (!chain) return null;
         const want = underlying.toLowerCase();
-        const pool = (json.data ?? []).find(
+        const matches = (json.data ?? []).filter(
             (p) => p.project === "aave-v3" && p.chain === chain && (p.underlyingTokens ?? []).some((t) => t?.toLowerCase() === want),
         );
-        const r = pool?.apyReward;
+        // Ambiguous (multiple aave-v3 pools share this underlying, e.g. isolation
+        // or variant markets): we cannot tell which is THIS reserve, so return
+        // null (honest unknown) rather than guessing the first. This is only a
+        // soft cross-ref anyway (auto, never lifts a green).
+        if (matches.length !== 1) return null;
+        const r = matches[0].apyReward;
         return typeof r === "number" && Number.isFinite(r) ? r : null;
     } catch {
         return null;

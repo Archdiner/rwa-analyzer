@@ -51,10 +51,12 @@ interface Signal {
 }
 
 function n(read: DimensionRead<number> | undefined): number | null {
-    return read && read.value != null ? read.value : null;
+    // A non-finite value (null or NaN) means the signal could not be read -> it
+    // must collapse to `unknown`, never slip through as a benign number.
+    return read && read.value != null && Number.isFinite(read.value) ? read.value : null;
 }
 function b(read: DimensionRead<boolean> | undefined): boolean | null {
-    return read && read.value != null ? read.value : null;
+    return read && typeof read.value === "boolean" ? read.value : null;
 }
 
 function pct(x: number): string {
@@ -74,7 +76,10 @@ function gradeDeficit(d: MarketRiskData): Signal {
     }
     if (deficit <= 0) return { key: "deficit", level: "ok", detail: "no reserve deficit" };
     if (supplied == null || supplied <= 0) {
-        return { key: "deficit", level: "critical", detail: "a reserve deficit is present" };
+        // A deficit is present but we cannot size it against supply -> honestly
+        // `unknown`, NOT `critical`. Treating an unsizable deficit as material
+        // bad debt would be the mirror of the false-green sin: a false red.
+        return { key: "deficit", level: "unknown", detail: "a reserve deficit is present but cannot be sized (supply unreadable)" };
     }
     const ratio = deficit / supplied;
     if (ratio < DEFICIT_DUST) return { key: "deficit", level: "ok", detail: `dust deficit (${pct(ratio)} of supply)` };
@@ -96,7 +101,14 @@ function gradeBuffer(d: MarketRiskData): Signal {
     const ltv = n(d.ltv);
     const lt = n(d.liquidation_threshold);
     if (ltv == null || lt == null) return { key: "buffer", level: "unknown", detail: "collateral config could not be read" };
-    if (lt === 0) return { key: "buffer", level: "ok", detail: "not enabled as collateral" };
+    // lt===0 AND ltv===0 means the asset is genuinely not usable as collateral -
+    // no buffer risk. But lt===0 while ltv>0 is a misconfiguration (borrowing
+    // against collateral that cannot be liquidated) - a caution, not a clean ok.
+    if (lt === 0) {
+        return ltv > 0
+            ? { key: "buffer", level: "caution", detail: `LTV ${pct(ltv)} with a zero liquidation threshold (misconfigured collateral)` }
+            : { key: "buffer", level: "ok", detail: "not enabled as collateral" };
+    }
     const buffer = lt - ltv;
     if (buffer <= 0) return { key: "buffer", level: "critical", detail: `LTV (${pct(ltv)}) >= liquidation threshold (${pct(lt)})` };
     if (buffer < BUFFER_THIN) return { key: "buffer", level: "caution", detail: `thin collateral buffer (${pct(buffer)}), reserve-level config` };
@@ -188,14 +200,20 @@ export function assessMarketRisk(record: NormalizedAssetRecord): DimensionAssess
     }
     reason += OFFCHAIN_CAVEAT;
 
-    // Confidence caps at the min of the reads used (all on-chain -> verified);
-    // then the shared finalize applies the ceiling + freshness.
+    // Confidence caps at the min of the reads used; then the shared finalize
+    // applies the ceiling + freshness. Freshness is measured from the OLDEST of
+    // the driving reads (not just utilization) so a stale oracle/deficit read
+    // cannot ride a fresh utilization stamp to a green.
     const usedReads: DimensionRead[] = [data.utilization, data.total_supplied, data.oracle_price, data.deficit];
+    const oldestAsOf = usedReads
+        .filter((r) => r.value != null)
+        .map((r) => r.as_of)
+        .reduce((oldest, a) => (new Date(a).getTime() < new Date(oldest).getTime() ? a : oldest), data.utilization.as_of);
     return finalizeReadDimension({
         flag,
         reason,
         used: usedReads,
-        asOf: data.utilization.as_of,
+        asOf: oldestAsOf,
         inputs: INPUTS,
         ceiling: data.underlying_ceiling,
     });

@@ -48,7 +48,13 @@ export function finalizeReadDimension(opts: {
             ? `${reason} Capped at the underlying's own verification ceiling (${ceiling}); you cannot be safer than the asset you lent.`
             : reason;
     const fr = applyFreshnessAt(capped, cappedReason, asOf, cadenceMs, "On-chain read");
-    const confidence: Confidence = used.length ? minConfidence(...used.map((u) => u.confidence)) : "unverifiable";
+    // A read with a null value verified NOTHING (the accessor was unavailable),
+    // so it contributes `unverifiable` to the confidence min regardless of the
+    // label it was stamped with - an "I could not read this" outcome must never
+    // carry a `verified` confidence.
+    const confidence: Confidence = used.length
+        ? minConfidence(...used.map((u) => (u.value == null ? "unverifiable" : u.confidence)))
+        : "unverifiable";
     const sources = [...new Set(used.map((u) => u.source))];
     return { flag: fr.flag, reason: fr.reason, inputs, confidence, sources, freshness: fr.freshness };
 }

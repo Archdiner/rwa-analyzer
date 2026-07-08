@@ -150,6 +150,44 @@ describe("assessMarketRisk", () => {
         expect(r.flag).toBe("unknown");
     });
 
+    it("a present deficit that cannot be sized (supply unreadable) -> not red (unknown, no false red)", () => {
+        const r = assessMarketRisk(recWithMr(mrd({ deficit: num(1.55), total_supplied: num(null) })));
+        expect(r.flag).not.toBe("red");
+        expect(r.reason).toMatch(/cannot be sized/);
+    });
+
+    it("a NaN read collapses to unknown, never a benign 'ok' (no false green)", () => {
+        const r = assessMarketRisk(recWithMr(mrd({ utilization: num(NaN) })));
+        expect(r.flag).not.toBe("green");
+    });
+
+    it("a NaN read never manufactures a false critical either", () => {
+        const r = assessMarketRisk(recWithMr(mrd({ deficit: num(NaN) })));
+        expect(r.flag).not.toBe("red");
+    });
+
+    it("lt=0 with ltv>0 is a misconfiguration -> caution, not a clean ok", () => {
+        const r = assessMarketRisk(recWithMr(mrd({ ltv: num(0.5), liquidation_threshold: num(0) })));
+        expect(r.flag).toBe("amber");
+        expect(r.reason).toMatch(/misconfigured collateral/);
+    });
+
+    it("ltv=0 and lt=0 (not collateral) stays green", () => {
+        const r = assessMarketRisk(recWithMr(mrd({ ltv: num(0), liquidation_threshold: num(0) })));
+        expect(r.flag).toBe("green");
+    });
+
+    it("a stale oracle read demotes even when utilization is fresh (freshness uses oldest driving read)", () => {
+        const r = assessMarketRisk(recWithMr(mrd({ oracle_price: num(1.0, "verified", daysAgo(2.5)) })));
+        expect(r.flag).not.toBe("green");
+        expect(r.freshness).toBe("stale");
+    });
+
+    it("a null-driven verdict does not carry a 'verified' confidence label", () => {
+        const r = assessMarketRisk(recWithMr(mrd({ deficit: num(null) })));
+        expect(r.confidence).not.toBe("verified"); // couldn't read deficit -> not verified
+    });
+
     it("no market_risk_data at all -> unknown (non-lending asset)", () => {
         const r = assessMarketRisk(rec());
         expect(r.flag).toBe("unknown");
