@@ -82,8 +82,9 @@ export interface AgentVerdict {
         tier: AgentBackingTier;
         /** Extraction axis. Read WITH `tier`, never alone. */
         confidence: Confidence;
-        /** Freshness axis. A green is a historical claim; read this too. */
-        freshness: Freshness;
+        /** Freshness axis. A green is a historical claim; read this too. Null
+         *  when there is no dateable evidence to age (e.g. unverifiable). */
+        freshness: Freshness | null;
         /** When the backing evidence is next expected to refresh (may be null). */
         next_expected_update: string | null;
         reason: string;
@@ -149,7 +150,7 @@ function meaningFor(tier: AgentBackingTier, strongest: EvidenceItem | null): str
 function buildCaveats(
     tier: AgentBackingTier,
     confidence: Confidence,
-    freshness: Freshness,
+    freshness: Freshness | null,
     nextExpected: string | null,
     qualitativePending: boolean,
 ): string[] {
@@ -166,7 +167,7 @@ function buildCaveats(
                 ? 'Backing confidence is "auto": the figure was auto-extracted/parsed - check the cited source before relying on it.'
                 : 'Backing confidence is "unverifiable": the figure could not be independently confirmed.',
         );
-    if (freshness !== "live") {
+    if (freshness === "aging" || freshness === "stale") {
         const after = nextExpected ? ` Re-verify after ${nextExpected.slice(0, 10)}.` : "";
         out.push(`Backing evidence is ${freshness} relative to its expected refresh cadence.${after}`);
     }
@@ -219,7 +220,11 @@ export function toAgentVerdict(
     // backing.ts). Absent (e.g. a manually-built assessment) defaults to `live`.
     // next_expected_update is clock-independent (as_of + cadence), so surfacing
     // it here is not time-fragile.
-    const freshness: Freshness = backingDim.freshness ?? "live";
+    // The dimension owns flag-affecting freshness. Absent + evidence present
+    // (e.g. a manually-built assessment) defaults to `live` without recomputing
+    // (not time-fragile). Absent + NO dateable evidence (e.g. unverifiable) is
+    // null: there is nothing to age, so "live" would be misleading.
+    const freshness: Freshness | null = backingDim.freshness ?? (strongest ? "live" : null);
     const next_expected_update = strongest ? nextExpectedUpdate(strongest) : null;
 
     return {

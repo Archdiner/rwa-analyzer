@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 // ---------------------------------------------------------------------------
-// rwa-verify — human handle for the backing verification primitive
+// rwa-verify - human handle for the backing verification primitive
 // ---------------------------------------------------------------------------
 // A thin client over /api/verify. Points at the deployed API by default; set
 // RWA_API_BASE to target a local server. The tier is printed, never encoded in
-// the exit code — a caller must read the verdict, not branch on 0/1.
+// the exit code - a caller must read the verdict, not branch on 0/1.
 //
 //   npm run verify -- ousg
 //   RWA_API_BASE=http://localhost:3000 npm run verify -- 1:0x7712...
@@ -36,6 +36,8 @@ const TIER_COLOR: Record<AgentBackingTier, string> = {
     unverifiable: C.gray,
 };
 
+const FRESH_COLOR: Record<string, string> = { live: C.green, aging: C.amber, stale: C.red };
+
 async function get<T>(path: string): Promise<T> {
     const res = await fetch(`${BASE}${path}`, { headers: { accept: "application/json" } });
     const json = (await res.json()) as { success?: boolean; data?: T; error?: string };
@@ -61,10 +63,14 @@ function printVerdict(v: AgentVerdict): void {
     const issuer = v.asset.issuer_name ? ` ${paint(`(${v.asset.issuer_name})`, C.dim)}` : "";
 
     console.log("");
-    console.log(`${paint(v.asset.symbol, C.bold)} — ${v.asset.name}${issuer}`);
+    console.log(`${paint(v.asset.symbol, C.bold)} - ${v.asset.name}${issuer}`);
+    const freshPart = b.freshness
+        ? `   ${paint(`freshness: ${b.freshness}`, FRESH_COLOR[b.freshness] ?? C.gray)}` +
+          (b.next_expected_update ? paint(` (updates ~${b.next_expected_update.slice(0, 10)})`, C.dim) : "")
+        : "";
     console.log(
         `${paint("BACKING:", C.bold)} ${paint(b.tier.toUpperCase(), tierColor + C.bold)}` +
-            `   ${paint(`confidence: ${b.confidence}`, C.cyan)}`,
+            `   ${paint(`confidence: ${b.confidence}`, C.cyan)}${freshPart}`,
     );
     console.log(`  ${b.meaning}`);
 
@@ -82,7 +88,8 @@ function printVerdict(v: AgentVerdict): void {
         for (const e of v.evidence) {
             console.log(
                 `  [${paint(e.source_label, C.cyan)}] independence ${e.independence}/5 ` +
-                    `(${e.independence_label}) · ${e.extraction} · ${e.confidence} · as of ${e.as_of.slice(0, 10)}`,
+                    `(${e.independence_label}) · ${e.extraction} · ${e.confidence} · ` +
+                    `${paint(e.freshness, FRESH_COLOR[e.freshness] ?? C.gray)} · as of ${e.as_of.slice(0, 10)}`,
             );
             console.log(paint(`      ${e.trust_boundary}`, C.dim));
         }
