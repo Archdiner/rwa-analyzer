@@ -339,6 +339,114 @@ export interface MarketRiskData {
     underlying_ceiling?: Flag;
 }
 
+// ── Governance + redemption-history dimensions (v1.3 - additive) ─────────────
+//
+// Two more deterministic dimensions, same honesty contract as v1.2: a green
+// rests only on a `verified` on-chain read, `unknown` is first-class, and
+// filing/registry-derived history is `auto` + citation and can NEVER mint a
+// verified green. See docs/plans/2026-07-09-001-feat-gate-governance-dimensions-plan.md.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Upgradeability pattern behind a contract. `none` = not a proxy (immutable). */
+export type ProxyPattern = "transparent" | "uups" | "beacon" | "none" | "unknown";
+
+/**
+ * Who controls a contract's admin/upgrade power. `eoa` (a single externally-owned
+ * key) is the highest-risk; `timelock`/`multisig` are structured control;
+ * `none` = renounced/immutable. `contract_unknown` = a contract we could not
+ * classify (never assumed benign).
+ */
+export type AdminType = "eoa" | "multisig" | "timelock" | "contract_unknown" | "none" | "unknown";
+
+/** A form of redemption restriction. Distinct kinds are never conflated. */
+export type RestrictionKind =
+    | "gate" // discretionary suspension of redemptions (structurally dead for MMFs post-2023)
+    | "suspension" // '40-Act §22(e) redemption suspension
+    | "liquidity_fee" // Rule 2a-7 mandatory/discretionary liquidity fee (the modern MMF signal)
+    | "repurchase_cap" // non-traded-REIT contractual repurchase-plan cap (a DIFFERENT regime)
+    | "pause" // on-chain token pause/freeze
+    | "unknown";
+
+/**
+ * The legal/technical regime a restriction lives under. Mandatory so a
+ * non-traded-REIT contractual cap is NEVER surfaced as a '40-Act regulatory
+ * suspension (or vice versa). See KTD7.
+ */
+export type RestrictionRegime =
+    | "mmf_2a7" // registered money market fund under Rule 2a-7
+    | "ic40_open_end" // registered '40-Act open-end fund
+    | "non_traded_reit" // non-traded REIT (contractual repurchase plan)
+    | "onchain_contract" // on-chain token pause/freeze mechanism
+    | "unknown";
+
+/**
+ * Additive Contract-A payload for the `governance` dimension: who can change or
+ * seize the asset, read on-chain. Registry-optional - reads the asset's own
+ * contract. Each scalar is a `DimensionRead` so an unreadable signal is
+ * `unknown`, never benign.
+ */
+export interface GovernanceData {
+    proxy_pattern: DimensionRead<string>; // ProxyPattern value
+    is_upgradeable: DimensionRead<boolean>;
+    admin_type: DimensionRead<string>; // AdminType value
+    admin_address: DimensionRead<string>;
+    /** Multisig signer threshold + owner count (null unless admin is a multisig). */
+    multisig_threshold: DimensionRead<number>;
+    multisig_owner_count: DimensionRead<number>;
+    /** Timelock minimum delay in seconds (null unless admin is a timelock). */
+    timelock_delay_seconds: DimensionRead<number>;
+    /** Whether a pause/guardian power exists on the contract. */
+    pause_power: DimensionRead<boolean>;
+    /** Optional human label for a known admin (from the label registry). */
+    admin_label?: string;
+    /** Anti-laundering ceiling from the underlying's own verification status. */
+    underlying_ceiling?: Flag;
+}
+
+/** One liquidity-fee event parsed from a registered MMF's N-MFP filing. `auto`. */
+export interface FeeEvent {
+    as_of: string;
+    kind: "liquidity_fee";
+    /** true = mandatory (Rule 2a-7 5% trigger), false = discretionary. */
+    mandatory: boolean;
+    /** Fee as a percentage of the value of shares redeemed. */
+    amount_pct: number | null;
+    source: string;
+    citation: Citation | null;
+}
+
+/** One curated redemption-restriction incident. `auto` + citation, regime-tagged. */
+export interface RedemptionIncident {
+    as_of: string;
+    kind: RestrictionKind;
+    regime: RestrictionRegime;
+    /** When the restriction was lifted, if known/resolved. */
+    resolved_at?: string;
+    source: string;
+    citation: Citation | null;
+    note?: string;
+}
+
+/**
+ * Additive Contract-A payload for the `redemption_history` dimension: the
+ * redemption-*restriction* track record, assembled from THREE distinct
+ * verification means that are never conflated - a live on-chain pause read
+ * (`verified`), N-MFP liquidity-fee history (`auto`/structured), and a curated
+ * incident registry (`auto` + citation).
+ */
+export interface RedemptionHistoryData {
+    /** Live on-chain pause state now (null value → unknown, never assumed false). */
+    current_paused: DimensionRead<boolean>;
+    /** Live on-chain freeze state now. */
+    current_frozen: DimensionRead<boolean>;
+    /** Liquidity-fee events from N-MFP (registered MMFs). */
+    fee_events: FeeEvent[];
+    /** Curated restriction incidents (suspensions, REIT caps, pre-2023 gates). */
+    incidents: RedemptionIncident[];
+    /** Anti-laundering ceiling from the underlying's own verification status. */
+    underlying_ceiling?: Flag;
+}
+
 // ── Field registry ───────────────────────────────────────────────────────────
 
 /** The complete set of field keys a record may carry. */
@@ -402,6 +510,12 @@ export interface NormalizedAssetRecord {
     /** On-chain market-risk state (v1.2, additive). Present only for lending
      *  reserves; absent → the `market_risk` dimension reads `unknown`. */
     market_risk_data?: MarketRiskData;
+    /** On-chain governance/control state (v1.3, additive). Present for any proxy
+     *  the reader could inspect; absent → the `governance` dimension is `unknown`. */
+    governance_data?: GovernanceData;
+    /** Redemption-restriction track record (v1.3, additive). Present only for
+     *  covered assets; absent → `redemption_history` reads `unknown`. */
+    redemption_history_data?: RedemptionHistoryData;
 }
 
 // ── Contract B - Assessment ──────────────────────────────────────────────────

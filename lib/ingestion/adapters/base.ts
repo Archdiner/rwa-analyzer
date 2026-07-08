@@ -14,8 +14,10 @@ import type {
     FieldMap,
     FieldObject,
     FieldValue,
+    GovernanceData,
     MarketRiskData,
     Method,
+    RedemptionHistoryData,
     YieldSourceData,
 } from "@/lib/contracts";
 import type { ParsedAssetId } from "@/lib/chains";
@@ -35,6 +37,11 @@ export interface AdapterResult {
     yield_source_data?: YieldSourceData;
     /** On-chain market-risk state (v1.2). Only a lending adapter contributes it. */
     market_risk_data?: MarketRiskData;
+    /** On-chain governance/control state (v1.3). The governance adapter contributes it. */
+    governance_data?: GovernanceData;
+    /** Redemption-restriction track record (v1.3). The redemption-history adapter
+     *  contributes the live+registry parts; the EDGAR adapter contributes fee events. */
+    redemption_history_data?: RedemptionHistoryData;
 }
 
 export type Adapter = (asset: ParsedAssetId) => Promise<AdapterResult>;
