@@ -1,5 +1,5 @@
 import { assessYieldSource } from "@/lib/computation/yield-source";
-import type { Confidence, DimensionRead, Flag, NormalizedAssetRecord, YieldSourceData } from "@/lib/contracts";
+import type { Confidence, DimensionRead, NormalizedAssetRecord, YieldSourceData } from "@/lib/contracts";
 import { f, rec, daysAgo } from "./helpers";
 
 /** Concise DimensionRead builder for yield tests. */

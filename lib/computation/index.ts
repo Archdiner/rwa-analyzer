@@ -15,6 +15,8 @@ import { assessBacking } from "@/lib/computation/backing";
 import { assessRedemption } from "@/lib/computation/redemption";
 import { assessAccess } from "@/lib/computation/access";
 import { assessStructure } from "@/lib/computation/structure";
+import { assessYieldSource } from "@/lib/computation/yield-source";
+import { assessMarketRisk } from "@/lib/computation/market-risk";
 
 export function computeAssessment(record: NormalizedAssetRecord): Assessment {
     const dimensions = {
@@ -22,6 +24,10 @@ export function computeAssessment(record: NormalizedAssetRecord): Assessment {
         redemption: assessRedemption(record.fields),
         access: assessAccess(record.fields),
         structure: assessStructure(record.fields),
+        // v1.2 - additive. `unknown` for any non-lending asset (no data present),
+        // so overall_confidence (which excludes `unknown`) does not regress.
+        yield_source: assessYieldSource(record),
+        market_risk: assessMarketRisk(record),
     };
 
     // Lowest confidence among dimensions actually assessed. An `unknown`
@@ -40,4 +46,4 @@ export function computeAssessment(record: NormalizedAssetRecord): Assessment {
     };
 }
 
-export { assessBacking, assessRedemption, assessAccess, assessStructure };
+export { assessBacking, assessRedemption, assessAccess, assessStructure, assessYieldSource, assessMarketRisk };

@@ -26,6 +26,7 @@ import { chainlinkAdapter } from "@/lib/ingestion/adapters/chainlink";
 import { defillamaAdapter } from "@/lib/ingestion/adapters/defillama";
 import { edgarAdapter } from "@/lib/ingestion/adapters/edgar";
 import { attestationAdapter } from "@/lib/ingestion/adapters/attestation";
+import { aaveAdapter } from "@/lib/ingestion/adapters/aave";
 import { rwaxyzAdapter } from "@/lib/ingestion/adapters/rwaxyz";
 import { resolveIssuerDoc } from "@/lib/ingestion/adapters/issuer-docs";
 import { extractQualitative } from "@/lib/ingestion/extractor";
@@ -64,11 +65,12 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
     const onchain = await onchainAdapter(parsed);
     const symbolHint = opts.identifiers?.symbol ?? onchain.identifiers?.symbol;
 
-    const [chainlink, defillama, edgar, attestation, rwaxyz] = await Promise.all([
+    const [chainlink, defillama, edgar, attestation, aave, rwaxyz] = await Promise.all([
         chainlinkAdapter(parsed),
         defillamaAdapter(parsed, opts.defillamaPool),
         edgarAdapter(parsed),
         attestationAdapter(parsed), // registry-gated: instant EMPTY unless the asset has one
+        aaveAdapter(parsed), // registry-gated: instant EMPTY unless the asset is an Aave v3 reserve
         rwaxyzAdapter(parsed, symbolHint),
     ]);
 
@@ -80,10 +82,17 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
         defillama,
         edgar,
         attestation,
+        aave,
         rwaxyz,
     ];
 
     const record = reconcile(assetId, parsed, contributions, opts.tokenizationMode ?? "unknown");
+
+    // v1.2 on-chain dimensions: the Aave adapter emits at most one of each data
+    // object (one reserve = one read), so they attach directly rather than
+    // reconciling across sources. Absent -> the dimensions read `unknown`.
+    if (aave.yield_source_data) record.yield_source_data = aave.yield_source_data;
+    if (aave.market_risk_data) record.market_risk_data = aave.market_risk_data;
 
     // On-chain reconstruction runs AFTER supply/NAV are known, so coverage can
     // be measured against supply x NAV. Only assets with a verified reserve

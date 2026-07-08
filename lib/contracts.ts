@@ -409,7 +409,13 @@ export interface NormalizedAssetRecord {
 /** A dimension verdict. `unknown` is a first-class outcome, not an error. */
 export type Flag = "green" | "amber" | "red" | "unknown";
 
-export type DimensionKey = "backing" | "redemption" | "access" | "structure";
+export type DimensionKey =
+    | "backing"
+    | "redemption"
+    | "access"
+    | "structure"
+    | "yield_source"
+    | "market_risk";
 
 export interface DimensionAssessment {
     flag: Flag;
