@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Backing & verification (spec §5.1) — evidence-set resolver (v1.1)
+// Backing & verification (spec §5.1) - evidence-set resolver (v1.1)
 // ---------------------------------------------------------------------------
 // Reads backing EVIDENCE (Contract A), not a single reserves field. Two axes:
 //   INDEPENDENCE (who wrote it) sets the ceiling color.
@@ -10,10 +10,10 @@
 // upstream). parse_confidence is a FLOOR, never a gate. NAV is never assumed.
 //
 // Two correctness fixes over the naive resolver:
-//   1. ANTI-LAUNDERING — on-chain reconstruction's independence is ceilinged by
+//   1. ANTI-LAUNDERING - on-chain reconstruction's independence is ceilinged by
 //      the held instrument (stamped in the evidence item at ingest), so a wallet
 //      holding an amber token is amber, not green.
-//   2. SLICE-FUNDS — tokenization_mode "tranche_of_registered_fund" skips the
+//   2. SLICE-FUNDS - tokenization_mode "tranche_of_registered_fund" skips the
 //      supply x NAV reconciliation (category-inapplicable when the on-chain
 //      token is a slice of a larger fund) and confers green via a regulator
 //      filing + NAV integrity instead.
@@ -28,13 +28,13 @@ import {
     type FieldName,
     type FieldObject,
     type Flag,
+    type Freshness,
     type NormalizedAssetRecord,
 } from "@/lib/contracts";
-import { read, usable, downgradeFlag, shortDate, usd } from "@/lib/computation/util";
+import { read, usable, usd } from "@/lib/computation/util";
+import { applyFreshness } from "@/lib/computation/freshness";
 
 const BACKING_TOLERANCE = 0.05; // 5% reconciliation tolerance
-const FRESH_WINDOW_MS = 3 * 24 * 60 * 60 * 1000; // 3 days (live feeds/reads)
-const FILING_FRESH_WINDOW_MS = 45 * 24 * 60 * 60 * 1000; // 45 days (monthly filings)
 const NAV_PEG_TOLERANCE = 0.01; // $1.00 MMF NAV integrity band
 const FULL_COVERAGE_PCT = 95; // at/above this, an item claims ~all reserves
 
@@ -54,15 +54,16 @@ function strongest(items: EvidenceItem[]): EvidenceItem {
     });
 }
 
-function build(flag: Flag, reason: string, used: (FieldObject | EvidenceItem)[]): DimensionAssessment {
+function build(
+    flag: Flag,
+    reason: string,
+    used: (FieldObject | EvidenceItem)[],
+    freshness?: Freshness,
+): DimensionAssessment {
     const confidence = used.length ? minConfidence(...used.map((u) => u.confidence)) : "unverifiable";
     const reasonWithNote = confidence === "auto" ? `${reason} ${AUTO_NOTE}` : reason;
     const sources = [...new Set(used.map((u) => u.source))];
-    return { flag, reason: reasonWithNote, inputs: INPUTS, confidence, sources };
-}
-
-function stale(asOf: string, windowMs: number): boolean {
-    return Date.now() - new Date(asOf).getTime() > windowMs;
+    return { flag, reason: reasonWithNote, inputs: INPUTS, confidence, sources, ...(freshness ? { freshness } : {}) };
 }
 
 function withinTolerance(a: number, b: number): boolean {
@@ -70,13 +71,12 @@ function withinTolerance(a: number, b: number): boolean {
     return Math.abs(a - b) / denom <= BACKING_TOLERANCE;
 }
 
-/** Applies the parse-confidence floor and staleness downgrade to a green. */
+/** Applies the parse-confidence floor, then the freshness gradient, to a green. */
 function guardGreen(
     flag: Flag,
     reason: string,
     ev: EvidenceItem,
-    freshWindowMs: number,
-): { flag: Flag; reason: string } {
+): { flag: Flag; reason: string; freshness: Freshness } {
     let f = flag;
     let r = reason;
     if (
@@ -88,11 +88,7 @@ function guardGreen(
         f = "amber";
         r = `Reserves reconcile, but the figure was parsed with low confidence and is not treated as verified.`;
     }
-    if (stale(ev.as_of, freshWindowMs)) {
-        f = downgradeFlag(f);
-        r += ` Reserve data is stale (last updated ${shortDate(ev.as_of)}).`;
-    }
-    return { flag: f, reason: r };
+    return applyFreshness(f, r, ev);
 }
 
 export function assessBacking(record: NormalizedAssetRecord): DimensionAssessment {
@@ -150,8 +146,8 @@ function assessFullyTokenized(
     const independent = cls.filter((c) => c.ev.independence >= GREEN_INDEPENDENCE_FLOOR);
 
     // 1. Cross-source conflict: INDEPENDENT sources that each claim ~all the
-    //    reserves must agree WITH EACH OTHER. Disagreement is a red — the tool's
-    //    whole point — regardless of which (if any) matches supply x NAV.
+    //    reserves must agree WITH EACH OTHER. Disagreement is a red - the tool's
+    //    whole point - regardless of which (if any) matches supply x NAV.
     const indepFull = independent.filter((c) => c.full);
     if (indepFull.length >= 2) {
         const anchor = indepFull[0].ev.reserves_value;
@@ -175,9 +171,8 @@ function assessFullyTokenized(
             "green",
             `Fully backed; reserves independently verified (${primary.source}). On-chain value reconciles within ${deltaPct}.`,
             primary,
-            FRESH_WINDOW_MS,
         );
-        return build(g.flag, g.reason, [...base, primary]);
+        return build(g.flag, g.reason, [...base, primary], g.freshness);
     }
 
     // 3. Independent source claims full coverage but the number is off -> red.
@@ -197,11 +192,11 @@ function assessFullyTokenized(
         const reason =
             `${coverage}% of backing is independently verified on-chain (${usd(primary.reserves_value)}); ` +
             `the remaining ${usd(remainder)} is not independently verified.`;
-        const g = guardGreen("amber", reason, primary, FRESH_WINDOW_MS); // amber never promotes; guard only staleness-notes
-        return build("amber", g.reason, [...base, primary]);
+        const g = applyFreshness("amber", reason, primary); // amber never promotes; freshness may demote/note
+        return build(g.flag, g.reason, [...base, primary], g.freshness);
     }
 
-    // 5. No independent evidence — below the green floor (self-report / oracle
+    // 5. No independent evidence - below the green floor (self-report / oracle
     //    unclassified / laundering-ceilinged reconstruction).
     const best = strongest(evidence);
     const bestCls = cls.find((c) => c.ev === best)!;
@@ -211,7 +206,7 @@ function assessFullyTokenized(
         return build("red", `Reported reserves diverge from on-chain value by ${deltaPct}.`, [...base, best]);
     }
 
-    let flag: Flag = "amber";
+    const flag: Flag = "amber";
     let reason: string;
     const coverageNote = bestCls.full ? "" : ` (covers ~${Math.round(best.coverage_pct)}% of backing)`;
     if (best.independence <= 1) {
@@ -221,12 +216,8 @@ function assessFullyTokenized(
     }
     if (best.note && best.source_type === "onchain_holdings") reason += ` ${best.note}`;
 
-    if (stale(best.as_of, FRESH_WINDOW_MS)) {
-        flag = downgradeFlag(flag);
-        reason += ` Reserve data is stale (last updated ${shortDate(best.as_of)}).`;
-    }
-
-    return build(flag, reason, [...base, best]);
+    const g = applyFreshness(flag, reason, best);
+    return build(g.flag, g.reason, [...base, best], g.freshness);
 }
 
 /**
@@ -275,10 +266,6 @@ function assessTranche(nav: FieldObject<number> | undefined, evidence: EvidenceI
         reason = `Regulator filing (${primary.source}) supports backing, but the figure was parsed with low confidence and is not treated as verified.`;
     }
 
-    if (stale(primary.as_of, FILING_FRESH_WINDOW_MS)) {
-        flag = downgradeFlag(flag);
-        reason += ` Latest filing is stale (${shortDate(primary.as_of)}).`;
-    }
-
-    return build(flag, reason, [nav, primary]);
+    const g = applyFreshness(flag, reason, primary);
+    return build(g.flag, g.reason, [nav, primary], g.freshness);
 }

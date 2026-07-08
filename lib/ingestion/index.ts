@@ -25,6 +25,7 @@ import { onchainHoldingsAdapter } from "@/lib/ingestion/adapters/onchain-holding
 import { chainlinkAdapter } from "@/lib/ingestion/adapters/chainlink";
 import { defillamaAdapter } from "@/lib/ingestion/adapters/defillama";
 import { edgarAdapter } from "@/lib/ingestion/adapters/edgar";
+import { attestationAdapter } from "@/lib/ingestion/adapters/attestation";
 import { rwaxyzAdapter } from "@/lib/ingestion/adapters/rwaxyz";
 import { resolveIssuerDoc } from "@/lib/ingestion/adapters/issuer-docs";
 import { extractQualitative } from "@/lib/ingestion/extractor";
@@ -41,11 +42,11 @@ const QUALITATIVE_KEYS: FieldName[] = [
 export interface IngestOptions {
     /** Human-curated identifiers (seed). */
     identifiers?: Partial<AssetIdentifiers>;
-    /** Human-verified fields (seed) — carried at their stated confidence. */
+    /** Human-verified fields (seed) - carried at their stated confidence. */
     seedFields?: FieldMap;
     /** Known disclosure URL (seed / reference), skips web-search discovery. */
     disclosureUrl?: string;
-    /** Curated tokenization mode (seed) — decides how reserves reconcile. */
+    /** Curated tokenization mode (seed) - decides how reserves reconcile. */
     tokenizationMode?: TokenizationMode;
     /** Curated DeFiLlama pool id for this asset's native live yield (DeFi assets). */
     defillamaPool?: string;
@@ -55,7 +56,7 @@ function qualitativePending(fields: FieldMap): boolean {
     return !QUALITATIVE_KEYS.every((k) => fields[k] != null);
 }
 
-/** Phase 1 — fast quantitative ingest. */
+/** Phase 1 - fast quantitative ingest. */
 export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Promise<NormalizedAssetRecord> {
     const parsed = parseAssetId(assetId);
     if (!parsed) throw new Error(`Malformed asset_id: ${assetId}`);
@@ -63,10 +64,11 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
     const onchain = await onchainAdapter(parsed);
     const symbolHint = opts.identifiers?.symbol ?? onchain.identifiers?.symbol;
 
-    const [chainlink, defillama, edgar, rwaxyz] = await Promise.all([
+    const [chainlink, defillama, edgar, attestation, rwaxyz] = await Promise.all([
         chainlinkAdapter(parsed),
         defillamaAdapter(parsed, opts.defillamaPool),
         edgarAdapter(parsed),
+        attestationAdapter(parsed), // registry-gated: instant EMPTY unless the asset has one
         rwaxyzAdapter(parsed, symbolHint),
     ]);
 
@@ -77,6 +79,7 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
         chainlink,
         defillama,
         edgar,
+        attestation,
         rwaxyz,
     ];
 
@@ -84,7 +87,7 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
 
     // On-chain reconstruction runs AFTER supply/NAV are known, so coverage can
     // be measured against supply x NAV. Only assets with a verified reserve
-    // wallet contribute (none of the flagships do — see reserves-registry.ts).
+    // wallet contribute (none of the flagships do - see reserves-registry.ts).
     const supplyVal = record.fields.supply?.value;
     const navVal = record.fields.nav?.value;
     const expectedUsd =
@@ -94,7 +97,7 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
         record.backing_evidence.push(...holdings.backing_evidence);
     }
 
-    // A seeded asset is human-curated and authoritative — never run LLM
+    // A seeded asset is human-curated and authoritative - never run LLM
     // extraction over it (that could only conflict with or downgrade verified
     // facts). Long-tail assets go through the deferred qualitative phase.
     const seeded = Object.keys(opts.seedFields ?? {}).length > 0;
@@ -102,7 +105,7 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
     return record;
 }
 
-/** Phase 2 — deferred qualitative fill. Mutates and returns a new record. */
+/** Phase 2 - deferred qualitative fill. Mutates and returns a new record. */
 export async function ingestQualitative(
     record: NormalizedAssetRecord,
     opts: IngestOptions = {},
@@ -131,7 +134,7 @@ export async function ingestQualitative(
     };
 }
 
-/** Full ingest (both phases) — for cron and seeding. */
+/** Full ingest (both phases) - for cron and seeding. */
 export async function ingest(assetId: string, opts: IngestOptions = {}): Promise<NormalizedAssetRecord> {
     const quant = await ingestQuant(assetId, opts);
     if (!quant.qualitative_pending) return quant;

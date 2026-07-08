@@ -3,8 +3,8 @@
 // ---------------------------------------------------------------------------
 // These are the two stable shapes the whole system depends on:
 //
-//   Contract A — NormalizedAssetRecord   (Ingestion  -> Computation)
-//   Contract B — Assessment              (Computation -> App)
+//   Contract A - NormalizedAssetRecord   (Ingestion  -> Computation)
+//   Contract B - Assessment              (Computation -> App)
 //
 // As long as these hold, any module can be rewritten in isolation. Two rules
 // hold everything together and are enforced downstream, not here:
@@ -26,9 +26,9 @@ export type Method =
 
 /**
  * Trust level of a single field.
- *   verified     — independently checkable (on-chain read, attested feed, ref API)
- *   auto         — machine-derived, plausible but unconfirmed (LLM, aggregator)
- *   unverifiable — required but missing, or a citation that failed validation
+ *   verified     - independently checkable (on-chain read, attested feed, ref API)
+ *   auto         - machine-derived, plausible but unconfirmed (LLM, aggregator)
+ *   unverifiable - required but missing, or a citation that failed validation
  */
 export type Confidence = "verified" | "auto" | "unverifiable";
 
@@ -66,7 +66,7 @@ export interface FieldObject<T extends FieldValue = FieldValue> {
  */
 export type ReservesMethod = "auditor_attested" | "self_reported" | "unknown" | "none";
 
-// ── Backing evidence (v1.1 — the Evidence-Source Hierarchy) ──────────────────
+// ── Backing evidence (v1.1 - the Evidence-Source Hierarchy) ──────────────────
 //
 // Backing is a TWO-AXIS judgement, and the two axes must never be conflated:
 //
@@ -82,12 +82,12 @@ export type ReservesMethod = "auditor_attested" | "self_reported" | "unknown" | 
 // (some on-chain, some filed, some attested), and each carries its own axes.
 //
 // ───────────────────────────────────────────────────────────────────────────
-// PRINCIPLE — GREEN RESTS ONLY ON GUARDS THE MODEL CANNOT ARGUE WITH.
+// PRINCIPLE - GREEN RESTS ONLY ON GUARDS THE MODEL CANNOT ARGUE WITH.
 //
 // A green backing verdict may rest ONLY on checks that are arithmetic or string
 // equality: the verbatim-substring citation match, and the supply×NAV
 // reconciliation. Neither can be talked around by the model that produced the
-// data — one is `indexOf`, the other is subtraction.
+// data - one is `indexOf`, the other is subtraction.
 //
 // `parse_confidence` is the model grading its own homework. It is a FLOOR
 // (a low score CAN block a green) but NEVER a GATE (a high score can NEVER, by
@@ -98,19 +98,19 @@ export type ReservesMethod = "auditor_attested" | "self_reported" | "unknown" | 
 
 /** Where a piece of backing evidence comes from. Drives the independence axis. */
 export type EvidenceSourceType =
-    | "regulator_filing" // SEC EDGAR N-MFP/N-CSR etc. — regulator-grade, independent
+    | "regulator_filing" // SEC EDGAR N-MFP/N-CSR etc. - regulator-grade, independent
     | "onchain_holdings" // reserves read directly on-chain (reconstruction)
     | "auditor_attestation" // independent auditor sign-off
     | "admin_report" // fund administrator report (stronger than issuer-self)
     | "custodian_feed" // custodian-published balance
     | "oracle_por" // Chainlink/other PoR feed (independence set by classification)
-    | "issuer_selfreport"; // issuer's own transparency page/PDF — self-reported
+    | "issuer_selfreport"; // issuer's own transparency page/PDF - self-reported
 
 /**
  * Nominal independence (0–5) per source type. `onchain_holdings` and
  * `oracle_por` are CONDITIONAL: the adapter stamps the real independence on each
  * item (on-chain reconstruction of an unproven token cannot exceed that token's
- * own backing independence — the anti-laundering ceiling; an oracle feed's rank
+ * own backing independence - the anti-laundering ceiling; an oracle feed's rank
  * depends on whether it is auditor-attested vs self-reported).
  */
 export const NOMINAL_INDEPENDENCE: Record<EvidenceSourceType, number> = {
@@ -127,8 +127,34 @@ export const NOMINAL_INDEPENDENCE: Record<EvidenceSourceType, number> = {
 export const GREEN_INDEPENDENCE_FLOOR = 3;
 
 /** Below this LLM self-reported parse confidence, a parsed figure cannot
- *  support a green (a FLOOR — see the principle above; never used as a gate). */
+ *  support a green (a FLOOR - see the principle above; never used as a gate). */
 export const PARSE_CONFIDENCE_FLOOR = 0.85;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * How often each evidence source is EXPECTED to refresh. Freshness is measured
+ * relative to this cadence, not an absolute clock: a 20-day-old N-MFP is normal
+ * (monthly), a 20-day-old oracle feed is broken (daily). A per-item `cadence_ms`
+ * overrides this when a specific form differs (e.g. N-CSR ~183d).
+ */
+export const EXPECTED_CADENCE_MS: Record<EvidenceSourceType, number> = {
+    oracle_por: 1 * DAY_MS,
+    onchain_holdings: 1 * DAY_MS,
+    custodian_feed: 1 * DAY_MS,
+    issuer_selfreport: 7 * DAY_MS,
+    admin_report: 35 * DAY_MS, // ~monthly
+    auditor_attestation: 35 * DAY_MS, // ~monthly; quarterly overridden per-item
+    regulator_filing: 35 * DAY_MS, // N-MFP monthly; N-CSR ~183d overridden per-item
+};
+
+/**
+ * Evidence age relative to its expected cadence - the THIRD axis of a backing
+ * verdict, read alongside `tier` and `confidence`. A green is a historical
+ * claim; freshness makes its age machine-readable instead of prose. It only
+ * ever DEMOTES a flag, never promotes one.
+ */
+export type Freshness = "live" | "aging" | "stale";
 
 /** How a single evidence item's number was obtained (its confidence label). */
 export type EvidenceExtraction = "onchain_read" | "structured" | "llm_extracted";
@@ -154,13 +180,16 @@ export interface EvidenceItem {
     source: string;
     /** Optional caveat surfaced to the user (e.g. underlying not proven). */
     note?: string;
+    /** Overrides EXPECTED_CADENCE_MS[source_type] when a specific form/feed has a
+     *  known cadence (e.g. N-CSR ~183d). Optional; additive. */
+    cadence_ms?: number;
 }
 
 /**
  * Whether the on-chain token IS the fund, or a slice of a bigger fund. Decides
  * how reserves reconcile:
- *   fully_tokenized             — reserves reconcile against supply × NAV.
- *   tranche_of_registered_fund  — on-chain supply is a slice of a larger
+ *   fully_tokenized             - reserves reconcile against supply × NAV.
+ *   tranche_of_registered_fund  - on-chain supply is a slice of a larger
  *                                 regulated fund; total-pool reconciliation is
  *                                 category-inapplicable. A regulator filing
  *                                 confers green via regulated structure + NAV
@@ -223,10 +252,10 @@ export type FieldName =
     | "aum"
     | "holders";
 
-/** Partial map of fields — adapters return a subset; reconcile merges them. */
+/** Partial map of fields - adapters return a subset; reconcile merges them. */
 export type FieldMap = Partial<Record<FieldName, FieldObject>>;
 
-// ── Contract A — Normalized Asset Record ─────────────────────────────────────
+// ── Contract A - Normalized Asset Record ─────────────────────────────────────
 
 export interface AssetIdentifiers {
     name: string;
@@ -261,7 +290,7 @@ export interface NormalizedAssetRecord {
     qualitative_pending?: boolean;
 }
 
-// ── Contract B — Assessment ──────────────────────────────────────────────────
+// ── Contract B - Assessment ──────────────────────────────────────────────────
 
 /** A dimension verdict. `unknown` is a first-class outcome, not an error. */
 export type Flag = "green" | "amber" | "red" | "unknown";
@@ -278,6 +307,8 @@ export interface DimensionAssessment {
     confidence: Confidence;
     /** Source labels backing this verdict. */
     sources: string[];
+    /** Evidence age relative to cadence (backing only). Absent = not age-sensitive. */
+    freshness?: Freshness;
 }
 
 /** Contract B. Computation produces this; the App consumes it. */

@@ -1,6 +1,4 @@
-// The agent contract's whole value is that the caveat can't be dropped. These
-// test the invariants that make it un-collapsible: no boolean, two axes, and
-// caveats that are non-empty unless the verdict is fully verified.
+// Agent verdict contract tests: no boolean safe flag, two axes, required caveats.
 import { toAgentVerdict, type AgentVerdict } from "@/lib/agent/verdict";
 import type { Assessment, DimensionAssessment, EvidenceItem, Flag, Confidence, NormalizedAssetRecord } from "@/lib/contracts";
 
@@ -50,7 +48,7 @@ function ev(source_type: EvidenceItem["source_type"], independence: number, conf
     };
 }
 
-describe("toAgentVerdict — un-collapsible contract", () => {
+describe("toAgentVerdict - agent contract", () => {
     it("never emits a `safe` boolean anywhere in the payload", () => {
         const v = toAgentVerdict(record([ev("regulator_filing", 5, "verified")]), assessment(dim("green", "verified")));
         const json = JSON.stringify(v);
@@ -100,5 +98,20 @@ describe("toAgentVerdict — un-collapsible contract", () => {
         const unknown = toAgentVerdict(record(), assessment(dim("unknown", "unverifiable")));
         expect(unknown.backing.trust_boundary).toBeNull();
         expect(unknown.backing.meaning).toMatch(/not a green light/i);
+    });
+
+    it("surfaces freshness + next_expected_update as the third axis", () => {
+        const v = toAgentVerdict(record([ev("regulator_filing", 5, "verified")]), assessment(dim("green", "verified")));
+        expect(v.backing.freshness).toBe("live"); // dimension carries no freshness -> defaults live
+        expect(typeof v.backing.next_expected_update).toBe("string");
+        expect(v.evidence[0].freshness).toBeDefined();
+        expect(v.evidence[0].next_expected).toBeDefined();
+    });
+
+    it("a stale backing carries a freshness caveat even when the tier is green", () => {
+        const staleGreen = { ...dim("green", "verified"), freshness: "stale" as const };
+        const v = toAgentVerdict(record([ev("regulator_filing", 5, "verified")]), assessment(staleGreen));
+        expect(v.backing.freshness).toBe("stale");
+        expect(v.backing.caveats.some((c) => /stale|refresh cadence/i.test(c))).toBe(true);
     });
 });

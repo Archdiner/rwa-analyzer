@@ -1,10 +1,10 @@
 // ---------------------------------------------------------------------------
-// Seed registry — flagship, human-checked assets
+// Seed registry - flagship, human-checked assets
 // ---------------------------------------------------------------------------
 // So the tool is never empty and its Verified tier is real. Seeded qualitative
 // facts are publicly documented and carried at `verified` confidence (method:
 // manual). Yields move daily, so they are carried at `auto` (approximate, "verify
-// yourself") with an as-of date — never dressed up as verified.
+// yourself") with an as-of date - never dressed up as verified.
 //
 // INTEGRITY: every contract address and qualitative fact here must be verified
 // against a primary source (issuer site / block explorer) before shipping. A
@@ -20,19 +20,20 @@ import type {
     TokenizationMode,
 } from "@/lib/contracts";
 import { formatAssetId, parseAssetId } from "@/lib/chains";
+import type { IngestOptions } from "@/lib/ingestion";
 
 export interface SeedAsset {
     identifiers: Pick<AssetIdentifiers, "name" | "symbol" | "chain_id" | "contract_address"> &
         Partial<Pick<AssetIdentifiers, "issuer_name">>;
     /** Known disclosure URL (skips web-search discovery on ingest). */
     disclosureUrl?: string;
-    /** Where a user actually deposits — the decision tool hands off here. */
+    /** Where a user actually deposits - the decision tool hands off here. */
     providerUrl?: string;
     /** Human-verified fields (qualitative + reference), carried as verified. */
     seedFields?: FieldMap;
     /** Whether the on-chain token is the whole fund or a slice of one. */
     tokenizationMode?: TokenizationMode;
-    /** Curated DeFiLlama pool id — this asset's yield is a live pool APY, not a
+    /** Curated DeFiLlama pool id - this asset's yield is a live pool APY, not a
      *  stated fund rate. Set for DeFi assets; MMFs keep their stated rate. */
     defillamaPool?: string;
 }
@@ -44,7 +45,7 @@ function v<T extends FieldValue>(value: T): FieldObject<T> {
     return { value, source: "seed", method: "manual", confidence: "verified", as_of: "2026-07-01T00:00:00Z", citation: null };
 }
 
-/** An approximate, human-entered yield — `auto` (verify yourself), dated. */
+/** An approximate, human-entered yield - `auto` (verify yourself), dated. */
 function approxYield(apy: number): FieldObject<number> {
     return { value: apy, source: "seed (approx)", method: "manual", confidence: "auto", as_of: YIELD_AS_OF, citation: null };
 }
@@ -173,7 +174,7 @@ const RAW: SeedAsset[] = [
         // Its backing is a protocol's on-chain collateral, not a regulator-filed
         // or independently-attested reserve, so our engine reads it as an honest
         // `unknown`. Yield is a LIVE pool APY (Sky Savings Rate), not a stated
-        // fund rate — the source of the number is part of the number.
+        // fund rate - the source of the number is part of the number.
         identifiers: {
             name: "Savings DAI",
             symbol: "sDAI",
@@ -192,11 +193,11 @@ const RAW: SeedAsset[] = [
     },
     {
         // The sharp foil for "yield is the price of risk": private credit. syrupUSDC
-        // is Maple's yield-bearing token — the yield exists because institutions
+        // is Maple's yield-bearing token - the yield exists because institutions
         // borrow against it and are trusted to repay. No reserve to read on-chain,
         // no regulator filing; backing reads honest `unknown`, and exit is not
         // instant (a notice period, not a redeem button). Higher yield sits next
-        // to visibly lower verifiable safety and slower exit — the whole lesson in
+        // to visibly lower verifiable safety and slower exit - the whole lesson in
         // one row. Yield is a LIVE pool APY, not a stated rate.
         identifiers: {
             name: "Syrup USDC",
@@ -229,6 +230,24 @@ export function getSeed(assetId: string): SeedAsset | undefined {
 
 export function allSeeds(): { assetId: string; seed: SeedAsset }[] {
     return Object.entries(SEED).map(([assetId, seed]) => ({ assetId, seed }));
+}
+
+/**
+ * Maps a seed to the full ingest options. Every verdict-affecting seed field
+ * MUST be forwarded here: a silently dropped field changes the verdict without
+ * any error. This is the exact bug that made BENJI a false red - `seed.ts` had
+ * hand-inlined the options object and omitted `tokenizationMode`, routing a
+ * tranche fund through supply x NAV. Centralizing + testing the mapping (see
+ * seed-options.test.ts) makes that class of drop impossible to reintroduce.
+ */
+export function seedIngestOptions(seed: SeedAsset): IngestOptions {
+    return {
+        identifiers: seed.identifiers,
+        seedFields: seed.seedFields,
+        disclosureUrl: seed.disclosureUrl,
+        tokenizationMode: seed.tokenizationMode,
+        defillamaPool: seed.defillamaPool,
+    };
 }
 
 /**
