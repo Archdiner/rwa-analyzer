@@ -15,9 +15,10 @@
 //
 // PROVENANCE: all rows below were resolved on-chain from the canonical Aave v3
 // Ethereum PoolAddressesProvider (0x2f39…4E9e) via
-// getPoolDataProvider().getReserveTokensAddresses(underlying) at mainnet block
-// 25489702, and cross-checked against the Aave v3 address book
-// (github.com/bgd-labs/aave-address-book). See scripts/verify-aave-addresses.ts.
+// getPoolDataProvider().getReserveTokensAddresses(underlying) at mainnet
+// (USDC/WETH block 25489702; DAI/USDT/wstETH block 25491010), and cross-checked
+// against the Aave v3 address book (github.com/bgd-labs/aave-address-book).
+// See scripts/verify-aave-addresses.ts.
 // ---------------------------------------------------------------------------
 
 export interface AaveMarketEntry {
@@ -40,8 +41,9 @@ export interface AaveMarketEntry {
 
 const VERIFIED_AGAINST =
     "on-chain via Aave v3 PoolAddressesProvider.getPoolDataProvider()." +
-    "getReserveTokensAddresses() at Ethereum block 25489702; cross-checked with " +
-    "the Aave v3 address book (github.com/bgd-labs/aave-address-book)";
+    "getReserveTokensAddresses() at Ethereum mainnet (USDC/WETH block 25489702; " +
+    "DAI/USDT/wstETH block 25491010); cross-checked with the Aave v3 address book " +
+    "(github.com/bgd-labs/aave-address-book). See scripts/verify-aave-addresses.ts";
 
 const AAVE_V3_ETH_PROVIDER = "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e";
 
@@ -62,6 +64,21 @@ const ETH_RESERVES: Reserve[] = [
         underlying: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // WETH
         aToken: "0x4d5F47FA6A74757f35C14fD3a6Ef8E3C9BC514E8", // aEthWETH
         label: "Aave v3 Ethereum WETH",
+    },
+    {
+        underlying: "0x6B175474E89094C44Da98b954EedeAC495271d0F", // DAI
+        aToken: "0x018008bfb33d285247A21d44E50697654f754e63", // aEthDAI
+        label: "Aave v3 Ethereum DAI",
+    },
+    {
+        underlying: "0xdAC17F958D2ee523a2206206994597C13D831ec7", // USDT
+        aToken: "0x23878914EFE38d27C4D67Ab83ed1b93A74D4086a", // aEthUSDT
+        label: "Aave v3 Ethereum USDT",
+    },
+    {
+        underlying: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", // wstETH
+        aToken: "0x0B925eD163218f6662a35e0f0371Ac234f9E9371", // aEthwstETH
+        label: "Aave v3 Ethereum wstETH",
     },
 ];
 
