@@ -41,4 +41,15 @@ describe("aave-registry", () => {
         expect(lookupAaveMarket(WETH)).toBeDefined();
         expect(lookupAaveMarket(WETH)).not.toBe(lookupAaveMarket(USDC));
     });
+
+    it("covers the expanded reserve set (DAI, USDT, wstETH) resolvable by underlying", () => {
+        const DAI = "1:0x6b175474e89094c44da98b954eedeac495271d0f";
+        const USDT = "1:0xdac17f958d2ee523a2206206994597c13d831ec7";
+        const WSTETH = "1:0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0";
+        expect(lookupAaveMarket(DAI)?.label).toMatch(/DAI/);
+        expect(lookupAaveMarket(USDT)?.label).toMatch(/USDT/);
+        expect(lookupAaveMarket(WSTETH)?.label).toMatch(/wstETH/);
+        // 5 reserves x (underlying + aToken) = 10 keys.
+        expect(Object.keys(AAVE_MARKETS).length).toBe(10);
+    });
 });
