@@ -44,10 +44,12 @@ describe("assessBacking", () => {
         expect(r.reason).toMatch(/unconfirmed/i);
     });
 
-    it("downgrades green to amber when reserve data is stale", () => {
-        const r = assessBacking(base({}, [ev({ independence: 4, reserves_value: 100, as_of: daysAgo(10) })]));
+    it("downgrades green to amber when reserve data is stale (2-3x cadence)", () => {
+        // oracle_por cadence is 1 day; 2.5 days is the stale band (2 < ratio <= 3).
+        const r = assessBacking(base({}, [ev({ independence: 4, reserves_value: 100, as_of: daysAgo(2.5) })]));
         expect(r.flag).toBe("amber");
         expect(r.reason).toMatch(/stale/i);
+        expect(r.freshness).toBe("stale");
     });
 
     it("treats an unverifiable evidence item as missing (red)", () => {

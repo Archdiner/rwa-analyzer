@@ -1,10 +1,15 @@
 // ---------------------------------------------------------------------------
-// Seed script — ingest + store all flagship assets.
+// Seed script - ingest + store all flagship assets.
 // Usage: npm run seed   (reads .env.local for RPC/OpenAI/Supabase keys)
 // ---------------------------------------------------------------------------
 
-import "dotenv/config";
-import { allSeeds } from "../lib/seed/assets";
+// Keys live in .env.local (not .env). `dotenv/config` only loads .env, which
+// does not exist here - so it would silently load nothing and saveAsset would
+// no-op while still printing success. Load the file that actually holds them.
+import { config } from "dotenv";
+config({ path: ".env.local" });
+
+import { allSeeds, seedIngestOptions } from "../lib/seed/assets";
 import { ingest } from "../lib/ingestion";
 import { saveAsset } from "../lib/store";
 
@@ -14,11 +19,7 @@ async function main() {
 
     for (const { assetId, seed } of seeds) {
         try {
-            const record = await ingest(assetId, {
-                identifiers: seed.identifiers,
-                seedFields: seed.seedFields,
-                disclosureUrl: seed.disclosureUrl,
-            });
+            const record = await ingest(assetId, seedIngestOptions(seed));
             const assessment = await saveAsset(record);
             console.log(
                 `  ✓ ${seed.identifiers.symbol.padEnd(6)} ${assetId}  → ${assessment.overall_confidence}`,

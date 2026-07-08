@@ -1,6 +1,7 @@
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { coverageTier, type Assessment, type NormalizedAssetRecord } from "@/lib/contracts";
 import { chainDisplay, FIELD_LABELS } from "@/lib/display";
+import { nextExpectedUpdate } from "@/lib/computation/freshness";
 import DimensionRow from "@/components/DimensionRow";
 import BackingEvidence from "@/components/BackingEvidence";
 import PendingRefresher from "@/components/PendingRefresher";
@@ -25,6 +26,15 @@ export default function RiskCard({
     const { identifiers, fields, conflicts } = record;
     const tier = coverageTier(assessment.overall_confidence);
     const dims = assessment.dimensions;
+
+    // The backing freshness pill's "updates ~date" comes from the strongest
+    // (most independent) usable evidence item - the same one the verdict rests on.
+    const usableEvidence = (record.backing_evidence ?? []).filter((e) => e.confidence !== "unverifiable");
+    const strongestEvidence = usableEvidence.length
+        ? usableEvidence.reduce((a, b) => (b.independence > a.independence ? b : a))
+        : null;
+    const backingNextUpdate =
+        dims.backing.freshness && strongestEvidence ? nextExpectedUpdate(strongestEvidence) : null;
 
     return (
         <article className="rounded-2xl border border-border bg-[color:var(--bg-elev)] overflow-hidden">
@@ -60,7 +70,7 @@ export default function RiskCard({
             {qualitativePending && (
                 <div className="flex items-center gap-2 px-6 py-2.5 bg-[color:var(--bg-elev-2)] border-b border-border text-xs text-text-muted">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Analyzing issuer documents — structure, redemption, and eligibility will fill in shortly.
+                    Analyzing issuer documents - structure, redemption, and eligibility will fill in shortly.
                     <PendingRefresher />
                 </div>
             )}
@@ -70,13 +80,13 @@ export default function RiskCard({
                     <AlertTriangle className="h-4 w-4 shrink-0" />
                     <span>
                         Sources disagree on{" "}
-                        {conflicts.map((c) => FIELD_LABELS[c.field] ?? c.field).join(", ")} — treated as a risk signal
+                        {conflicts.map((c) => FIELD_LABELS[c.field] ?? c.field).join(", ")} - treated as a risk signal
                         and confidence downgraded.
                     </span>
                 </div>
             )}
 
-            {/* Access first — you need to know if you can even touch it. */}
+            {/* Access first - you need to know if you can even touch it. */}
             <div className="px-6">
                 <div className="my-4 rounded-xl border border-[color:var(--gate-bg)] bg-[color:var(--bg-elev-2)] px-4">
                     <DimensionRow dimensionKey="access" dimension={dims.access} fields={fields} />
@@ -86,7 +96,13 @@ export default function RiskCard({
             {/* Remaining dimensions */}
             <div className="px-6 pb-2">
                 <div className="border-t border-border first:border-t-0">
-                    <DimensionRow dimensionKey="backing" dimension={dims.backing} fields={fields} noBorder />
+                    <DimensionRow
+                        dimensionKey="backing"
+                        dimension={dims.backing}
+                        fields={fields}
+                        noBorder
+                        freshnessNextUpdate={backingNextUpdate}
+                    />
                     {record.backing_evidence?.length > 0 && (
                         <div className="-mt-2 pb-5">
                             <p className="mb-1 text-[11px] uppercase tracking-wide text-text-faint">Backing evidence</p>

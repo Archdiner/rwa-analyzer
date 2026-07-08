@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Display helpers — labels + styling maps shared by UI components
+// Display helpers - labels + styling maps shared by UI components
 // ---------------------------------------------------------------------------
 
 import type {
@@ -73,7 +73,7 @@ export const REDEMPTION_LABELS: Record<RedemptionSpeed, string> = {
 };
 
 /**
- * The kind of yield number, shown next to it — because the source of a number is
+ * The kind of yield number, shown next to it - because the source of a number is
  * part of the number. A live pool APY reads differently than a stated fund rate.
  */
 export function yieldKindLabel(kind: "pool_apy" | "stated_rate" | null): string {
@@ -95,7 +95,7 @@ export function safetyHeadline(flag: Flag): string {
         case "green":
             return "Backing independently verified";
         case "amber":
-            return "Backing partly verified — read the caveat";
+            return "Backing partly verified; read the caveat";
         case "red":
             return "Backing does not reconcile";
         default:
@@ -131,24 +131,17 @@ export function independenceLabel(n: number): string {
     return "unproven";
 }
 
-/**
- * Where trust bottoms out for each evidence type — the exact point at which
- * on-chain verification stops and institutional trust begins. Every verdict has
- * one; naming it on the card (not just the README) is the product's integrity in
- * one line. No source is a chain of proof all the way down, and pretending
- * otherwise is the failure this tool exists to refuse.
- */
+/** Where verification stops for each evidence type. Shown on every verdict card. */
 export const EVIDENCE_TRUST_BOUNDARY: Record<EvidenceSourceType, string> = {
     regulator_filing:
-        "Proves this is a redeemable share of a regulator-verified fund — not a reconciliation of the on-chain float against the fund's share register. That linkage is the transfer agent's record.",
+        "Confirms a redeemable share of a regulator-verified fund. Does not reconcile on-chain float against the fund share register; that linkage is the transfer agent's record.",
     onchain_holdings:
-        "Proves what the reserve wallet holds on-chain. It does not prove the backing of the instruments held — this read is only as independent as they are.",
+        "Shows what the reserve wallet holds on-chain. Does not prove backing of nested instruments; independence is limited to what those holdings themselves verify.",
     auditor_attestation:
-        "Rests on an independent auditor's attestation as of a date, not a live or continuous proof.",
+        "Verification stops at the attesting firm: you trust that the auditor did the reconciliation, not a regulator. As of a stated date, not continuous proof.",
     admin_report:
-        "Rests on the fund administrator's report — independent of the issuer, but not a regulator filing or an audit.",
-    custodian_feed: "Rests on the custodian's published balance — trust bottoms out at the custodian's record.",
-    oracle_por: "Rests on the proof-of-reserve feed's methodology — trust bottoms out at whoever attests the feed.",
-    issuer_selfreport:
-        "Self-reported by the issuer — trust bottoms out at the issuer's own word, with no independent verification.",
+        "Based on the fund administrator's report. Independent of the issuer, but not a regulator filing or audit.",
+    custodian_feed: "Based on the custodian's published balance.",
+    oracle_por: "Based on the proof-of-reserve feed methodology and its attestation chain.",
+    issuer_selfreport: "Issuer-reported with no independent verification.",
 };
