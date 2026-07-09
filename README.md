@@ -26,25 +26,37 @@ Each verdict also includes `meaning`, `trust_boundary`, `next_expected_update`, 
 
 ### MCP
 
-Stdio server with `check_asset_backing` and `list_verified_assets`:
+Stdio server with `check_asset_backing` and `list_verified_assets`. It ships as the `@archdiner/rwa-verify` npm package, so no clone is required.
+
+Claude Code (one command):
+
+```bash
+claude mcp add rwa-backing-verifier \
+  -e RWA_API_BASE=https://rwa-analyzer.vercel.app \
+  -- npx -y -p @archdiner/rwa-verify@latest rwa-verify-mcp
+```
+
+Other MCP clients:
 
 ```json
 {
   "mcpServers": {
     "rwa-backing-verifier": {
       "command": "npx",
-      "args": ["tsx", "mcp/server.ts"],
-      "cwd": "/absolute/path/to/rwa-analyzer",
+      "args": ["-y", "-p", "@archdiner/rwa-verify@latest", "rwa-verify-mcp"],
       "env": { "RWA_API_BASE": "https://rwa-analyzer.vercel.app" }
     }
   }
 }
 ```
 
+Per-client config paths (Cursor, Claude Desktop, VS Code, Windsurf) are in [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
+
 ### CLI
 
 ```bash
-npm run verify -- ousg
+npx -y -p @archdiner/rwa-verify rwa-verify OUSG   # no clone
+npm run verify -- ousg                            # from a clone
 npm run verify -- 1:0x...
 ```
 

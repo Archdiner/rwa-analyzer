@@ -3,15 +3,63 @@
 The engine's verdict is served identically to agents and humans through one pure
 function, `toAgentVerdict` (`lib/agent/verdict.ts`), exposed over three surfaces:
 
-| Surface | Entry point |
-| --- | --- |
-| HTTP | `GET /api/verify?asset_id={chainId}:{address}` |
-| CLI | `bin/rwa-verify.ts` (`npm run verify -- {asset_id}`) |
-| MCP | `mcp/server.ts` (tool `verify_backing`) |
+| Surface | Entry point | Install |
+| --- | --- | --- |
+| HTTP | `GET /api/verify?asset={symbol\|chainId:address}` | Live at `https://rwa-analyzer.vercel.app` |
+| CLI | `rwa-verify <asset>` | `npx -y -p @archdiner/rwa-verify rwa-verify OUSG` |
+| MCP | tools `check_asset_backing`, `list_verified_assets` | `npx -y -p @archdiner/rwa-verify rwa-verify-mcp` |
 
 The contract has **no boolean `safe` flag**. Every read is multi-axis and
 un-collapsible: `tier` × `confidence` × `freshness` for backing, plus a generic
 `dimensions` map that agents can reason over.
+
+## MCP setup
+
+The MCP server and CLI ship as the `@archdiner/rwa-verify` npm package. No clone
+or local secrets are required when pointing at the hosted API.
+
+Claude Code (one command):
+
+```bash
+claude mcp add rwa-backing-verifier \
+  -e RWA_API_BASE=https://rwa-analyzer.vercel.app \
+  -- npx -y -p @archdiner/rwa-verify@latest rwa-verify-mcp
+```
+
+Other MCP clients add the equivalent to their config:
+
+```json
+{
+  "mcpServers": {
+    "rwa-backing-verifier": {
+      "command": "npx",
+      "args": ["-y", "-p", "@archdiner/rwa-verify@latest", "rwa-verify-mcp"],
+      "env": { "RWA_API_BASE": "https://rwa-analyzer.vercel.app" }
+    }
+  }
+}
+```
+
+VS Code uses `"servers"` with `"type": "stdio"` instead of `"mcpServers"`.
+Per-client config file paths are listed in the package README
+(`packages/rwa-verify/README.md`). Cloned the repo? `.cursor/mcp.json` and
+`.vscode/mcp.json` are preconfigured to run `npm run mcp`.
+
+### How a green is earned (three lanes)
+
+A green `tier: verified_backed` is reachable through three evidence lanes, in
+descending order of independence, and the verdict always names which one:
+
+1. **Regulator filing** (EDGAR N-MFP, registered funds): independence 5, the only
+   lane that reaches `verified` green. BENJI uses this lane.
+2. **On-chain reconstruction** (reserves read directly on-chain): `verified`, but
+   only when the reserve wallet is published and attributable.
+3. **Auditor attestation** (Lane C, a CPA/administrator PDF): independence 4,
+   green-capable but capped at `auto`, never `verified`.
+
+No lane bypasses the arithmetic: green still requires the supply × NAV
+reconciliation and a verbatim-substring citation. Where nothing reconciles, the
+verdict is an honest `unverifiable`, which is not a safety judgment.
 
 ## Dimensions
 

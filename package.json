@@ -2,7 +2,15 @@
   "name": "rwa-analyzer",
   "version": "0.1.0",
   "description": "Machine-readable backing verification for tokenized real-world assets",
+  "license": "MIT",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Archdiner/rwa-analyzer.git"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
   "bin": {
     "rwa-verify": "bin/rwa-verify.ts"
   },
@@ -14,7 +22,8 @@
     "test": "jest",
     "seed": "tsx scripts/seed.ts",
     "verify": "tsx bin/rwa-verify.ts",
-    "mcp": "tsx mcp/server.ts"
+    "mcp": "tsx mcp/server.ts",
+    "build:verify": "npm run build -w @archdiner/rwa-verify"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
