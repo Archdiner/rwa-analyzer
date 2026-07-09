@@ -17,7 +17,7 @@
 // ---------------------------------------------------------------------------
 
 import { XMLParser } from "fast-xml-parser";
-import type { EvidenceItem } from "@/lib/contracts";
+import type { EvidenceItem, FeeEvent } from "@/lib/contracts";
 
 export interface NmfpData {
     /** Fund series the filing is for — checked against the registry entry. */
@@ -37,6 +37,10 @@ export interface NmfpData {
     categories: Record<string, number>;
     /** Weighted average maturity in days (Rule 2a-7 caps it at 60). */
     wamDays: number | null;
+    /** N-MFP `liquidityFeeFundApplyFlag`: did the fund apply a liquidity fee this
+     *  period? true = "Y", false = "N", null = tag absent. The modern MMF
+     *  redemption-restriction signal (regulatory gates are dead post-Oct-2023). */
+    liquidityFeeApplied: boolean | null;
 }
 
 /** Recursively collects every string value stored under `key`, at any depth. */
@@ -98,7 +102,37 @@ export function parseNmfp(xml: string): NmfpData | null {
         category: collect(root, "moneyMarketFundCategory")[0] ?? null,
         categories,
         wamDays: firstNumber(root, "averagePortfolioMaturity"),
+        liquidityFeeApplied: parseFlag(collect(root, "liquidityFeeFundApplyFlag")[0]),
     };
+}
+
+/** Parses an N-MFP Y/N flag: "Y" → true, "N" → false, anything else → null. */
+function parseFlag(v: string | undefined): boolean | null {
+    if (v == null) return null;
+    const s = String(v).trim().toUpperCase();
+    if (s === "Y" || s === "YES" || s === "TRUE") return true;
+    if (s === "N" || s === "NO" || s === "FALSE") return false;
+    return null;
+}
+
+/**
+ * Builds liquidity-fee events from a parsed filing. A fee-applied period emits
+ * one event stamped with the report date; "no fee" or an absent flag emits none.
+ * `mandatory`/`amount_pct` are best-effort (the detail tags only appear when a
+ * fee was actually applied, which the flagship funds have not done).
+ */
+export function buildFeeEvents(data: NmfpData, source: string): FeeEvent[] {
+    if (data.liquidityFeeApplied !== true) return [];
+    return [
+        {
+            as_of: data.reportDate || new Date().toISOString(),
+            kind: "liquidity_fee",
+            mandatory: false, // detail not present unless surfaced; conservative default
+            amount_pct: null,
+            source,
+            citation: null, // structured XML flag — the filing itself is the proof
+        },
+    ];
 }
 
 /** The NAV/share the filing establishes: market (shadow) NAV, else stable target. */

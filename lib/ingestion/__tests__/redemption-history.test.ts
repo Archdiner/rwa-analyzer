@@ -1,6 +1,7 @@
 import {
     buildRedemptionHistoryData,
-    mergeFeeEvents,
+    buildFeeContribution,
+    mergeRedemptionHistory,
     hasAssessmentBasis,
 } from "@/lib/ingestion/redemption-history";
 import { REDEMPTION_INCIDENTS, lookupRedemptionIncidents } from "@/lib/ingestion/adapters/redemption-registry";
@@ -67,18 +68,23 @@ describe("buildRedemptionHistoryData", () => {
     });
 });
 
-describe("mergeFeeEvents", () => {
-    it("merges fee events into an existing base without touching other signals", () => {
+describe("mergeRedemptionHistory", () => {
+    it("merges the EDGAR fee contribution into a base without touching other signals", () => {
         const base = buildRedemptionHistoryData({ currentPaused: false, currentFrozen: null, incidents: [], asOf: "t" });
-        const merged = mergeFeeEvents(base, [fee()], "t");
-        expect(merged.current_paused.value).toBe(false);
+        const feePart = buildFeeContribution(true, [fee()], "t");
+        const merged = mergeRedemptionHistory(base, feePart)!;
+        expect(merged.current_paused.value).toBe(false); // from base
+        expect(merged.latest_fee_flag.value).toBe(true); // from fee contribution
+        expect(merged.latest_fee_flag.confidence).toBe("verified");
         expect(merged.fee_events).toHaveLength(1);
-        expect(merged.fee_events[0].kind).toBe("liquidity_fee");
     });
-    it("synthesizes a payload when only fee events exist (fund with no on-chain pause)", () => {
-        const merged = mergeFeeEvents(undefined, [fee()], "t");
+    it("returns the fee contribution alone when there is no base (fund with no on-chain pause)", () => {
+        const merged = mergeRedemptionHistory(undefined, buildFeeContribution(false, [], "t"))!;
         expect(merged.current_paused.value).toBeNull();
-        expect(merged.fee_events).toHaveLength(1);
+        expect(merged.latest_fee_flag.value).toBe(false);
+    });
+    it("returns undefined when neither contribution exists", () => {
+        expect(mergeRedemptionHistory(undefined, undefined)).toBeUndefined();
     });
 });
 
@@ -89,8 +95,8 @@ describe("hasAssessmentBasis", () => {
     it("true when a curated incident exists", () => {
         expect(hasAssessmentBasis(buildRedemptionHistoryData({ currentPaused: null, currentFrozen: null, incidents: [incident()], asOf: "t" }))).toBe(true);
     });
-    it("true when a fee event exists", () => {
-        expect(hasAssessmentBasis(mergeFeeEvents(undefined, [fee()], "t"))).toBe(true);
+    it("true when the N-MFP fee flag was read (even if no fee applied)", () => {
+        expect(hasAssessmentBasis(buildFeeContribution(false, [], "t"))).toBe(true);
     });
     it("false when there is no basis at all (long-tail token) -> dimension stays unknown", () => {
         expect(hasAssessmentBasis(buildRedemptionHistoryData({ currentPaused: null, currentFrozen: null, incidents: [], asOf: "t" }))).toBe(false);

@@ -439,6 +439,11 @@ export interface RedemptionHistoryData {
     current_paused: DimensionRead<boolean>;
     /** Live on-chain freeze state now. */
     current_frozen: DimensionRead<boolean>;
+    /** The registered-MMF liquidity-fee flag from the LATEST N-MFP filing
+     *  (`liquidityFeeFundApplyFlag`): true = a fee was applied this period, false
+     *  = none applied, null = not an MMF / not read. A `verified` structured
+     *  regulator read (re-derivable), distinct from the curated incidents below. */
+    latest_fee_flag: DimensionRead<boolean>;
     /** Liquidity-fee events from N-MFP (registered MMFs). */
     fee_events: FeeEvent[];
     /** Curated restriction incidents (suspensions, REIT caps, pre-2023 gates). */
