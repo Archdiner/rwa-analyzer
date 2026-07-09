@@ -26,9 +26,9 @@ function Segmented<T extends string>({
 }) {
     return (
         <div>
-            <div className="flex items-baseline justify-between">
-                <span className="text-sm font-medium text-text">{label}</span>
-                <span className="text-[11px] text-text-faint">{hint}</span>
+            <div className="flex items-baseline justify-between gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/45">{label}</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-white/25">{hint}</span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
                 {options.map((o) => {
@@ -39,10 +39,10 @@ function Segmented<T extends string>({
                             type="button"
                             onClick={() => onChange(o.id)}
                             aria-pressed={active}
-                            className={`rounded-full px-3.5 py-2 text-[13px] transition-colors ${
+                            className={`border px-3 py-2 font-mono text-[12px] transition-colors ${
                                 active
-                                    ? "border border-primary/60 bg-primary/10 text-text"
-                                    : "border border-border text-text-muted hover:border-border-strong hover:text-text"
+                                    ? "border-white/35 bg-white/[0.06] text-text"
+                                    : "border-white/12 text-text-muted hover:border-white/25 hover:text-text"
                             }`}
                         >
                             {o.label}
@@ -50,6 +50,32 @@ function Segmented<T extends string>({
                     );
                 })}
             </div>
+        </div>
+    );
+}
+
+function Board({
+    children,
+    fig,
+    className = "",
+}: {
+    children: React.ReactNode;
+    fig?: string;
+    className?: string;
+}) {
+    return (
+        <div className={`relative border border-white/12 bg-[#050505]/70 ${className}`}>
+            <span className="pointer-events-none absolute -left-px -top-px h-2.5 w-2.5 border-l border-t border-white/35" />
+            <span className="pointer-events-none absolute -right-px -top-px h-2.5 w-2.5 border-r border-t border-white/35" />
+            <span className="pointer-events-none absolute -bottom-px -left-px h-2.5 w-2.5 border-b border-l border-white/35" />
+            <span className="pointer-events-none absolute -bottom-px -right-px h-2.5 w-2.5 border-b border-r border-white/35" />
+            {fig && (
+                <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-3">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">{fig}</span>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/25">filter</span>
+                </div>
+            )}
+            {children}
         </div>
     );
 }
@@ -64,68 +90,68 @@ export default function DecisionExplorer({ universe }: { universe: AssetSummary[
     );
 
     return (
-        <div className="grid gap-8 lg:grid-cols-[320px_1fr] lg:gap-10">
-            {/* Controls */}
+        <div className="grid gap-8 lg:grid-cols-[300px_1fr] lg:gap-10">
             <div className="lg:sticky lg:top-24 lg:self-start">
-                <div className="panel space-y-7 p-6">
+                <Board fig="FIG. 07 · PROFILE" className="space-y-6 p-5 sm:p-6">
                     <Segmented
-                        label="Where are you"
-                        hint="jurisdiction"
+                        label="Where you are"
+                        hint="eligibility"
                         value={jurisdiction}
                         onChange={setJurisdiction}
                         options={USER_JURISDICTIONS}
                     />
-                    <div className="h-px bg-border" />
+                    <div className="h-px bg-white/10" />
                     <Segmented
                         label="How much"
-                        hint="amount"
+                        hint="size"
                         value={amount}
                         onChange={setAmount}
                         options={AMOUNT_BANDS.map((b) => ({ id: b.id, label: b.label }))}
                     />
-                </div>
+                </Board>
                 <p className="mt-4 px-1 text-[12px] leading-relaxed text-text-faint">
-                    Ranked safety first: backing you can verify comes before higher yield you cannot.
+                    Verified backing sorts above higher APY you would have to take on trust.
                 </p>
             </div>
 
-            {/* Results */}
-            <div>
-                <div className="flex items-baseline justify-between px-1">
-                    <h3 className="text-sm font-medium text-text">
-                        What you can reach{" "}
-                        <span className="text-text-faint">({reachable.length})</span>
-                    </h3>
-                </div>
+            <div className="space-y-8">
+                <Board>
+                    <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-3">
+                        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
+                            Open to you
+                        </span>
+                        <span className="font-mono text-[10px] tabular-nums text-white/35">{reachable.length}</span>
+                    </div>
 
-                {reachable.length === 0 ? (
-                    <div className="panel mt-4 p-8 text-center">
-                        <p className="text-sm text-text-muted">
-                            Nothing here matches that profile. Try a different amount or location.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="panel mt-4 divide-y divide-border overflow-hidden">
-                        {reachable.map((item) => (
-                            <ReachableRow key={item.asset.asset_id} item={item} />
-                        ))}
-                    </div>
-                )}
+                    {reachable.length === 0 ? (
+                        <div className="px-5 py-10 text-center">
+                            <p className="text-sm text-text-muted">
+                                Nothing matches that profile. Change location or size.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-white/10">
+                            {reachable.map((item) => (
+                                <ReachableRow key={item.asset.asset_id} item={item} />
+                            ))}
+                        </div>
+                    )}
+                </Board>
 
                 {closed.length > 0 && (
-                    <div className="mt-10">
-                        <div className="flex items-baseline justify-between px-1">
-                            <h3 className="text-sm font-medium text-text-muted">
-                                Out of reach here{" "}
-                                <span className="text-text-faint">({closed.length})</span>
-                            </h3>
+                    <Board>
+                        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-3">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
+                                Blocked here
+                            </span>
+                            <span className="font-mono text-[10px] tabular-nums text-white/35">{closed.length}</span>
                         </div>
-                        <div className="panel mt-4 divide-y divide-border overflow-hidden opacity-90">
+                        <div className="divide-y divide-white/10 opacity-90">
                             {closed.map((item) => (
                                 <ClosedRow key={item.asset.asset_id} item={item} />
                             ))}
                         </div>
-                    </div>
+                    </Board>
                 )}
             </div>
         </div>

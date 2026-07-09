@@ -173,13 +173,11 @@ body {
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     transition:
-        border-color 0.25s ease,
-        transform 0.25s ease,
-        background-color 0.25s ease;
+        border-color 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+        background-color 0.16s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .card-link:hover {
     border-color: var(--border-strong);
-    transform: translateY(-2px);
     background-color: rgba(22, 22, 25, 0.6);
 }
 .card-link:hover .arrow-box {
@@ -194,13 +192,11 @@ body {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     transition:
-        border-color 0.2s ease,
-        transform 0.2s ease,
-        background-color 0.2s ease;
+        border-color 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+        background-color 0.16s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .panel-link:hover {
     border-color: var(--border-strong);
-    transform: translateY(-2px);
     background-color: rgba(22, 22, 25, 0.6);
 }
 
