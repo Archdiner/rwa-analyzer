@@ -27,6 +27,9 @@ import { defillamaAdapter } from "@/lib/ingestion/adapters/defillama";
 import { edgarAdapter } from "@/lib/ingestion/adapters/edgar";
 import { attestationAdapter } from "@/lib/ingestion/adapters/attestation";
 import { aaveAdapter } from "@/lib/ingestion/adapters/aave";
+import { governanceAdapter } from "@/lib/ingestion/adapters/governance";
+import { redemptionHistoryAdapter } from "@/lib/ingestion/adapters/redemption-history";
+import { mergeRedemptionHistory } from "@/lib/ingestion/redemption-history";
 import { rwaxyzAdapter } from "@/lib/ingestion/adapters/rwaxyz";
 import { resolveIssuerDoc } from "@/lib/ingestion/adapters/issuer-docs";
 import { extractQualitative } from "@/lib/ingestion/extractor";
@@ -65,12 +68,14 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
     const onchain = await onchainAdapter(parsed);
     const symbolHint = opts.identifiers?.symbol ?? onchain.identifiers?.symbol;
 
-    const [chainlink, defillama, edgar, attestation, aave, rwaxyz] = await Promise.all([
+    const [chainlink, defillama, edgar, attestation, aave, governance, redemptionHistory, rwaxyz] = await Promise.all([
         chainlinkAdapter(parsed),
         defillamaAdapter(parsed, opts.defillamaPool),
         edgarAdapter(parsed),
         attestationAdapter(parsed), // registry-gated: instant EMPTY unless the asset has one
         aaveAdapter(parsed), // registry-gated: instant EMPTY unless the asset is an Aave v3 reserve
+        governanceAdapter(parsed), // registry-optional: reads any contract's control on-chain
+        redemptionHistoryAdapter(parsed), // live pause read + curated incident registry
         rwaxyzAdapter(parsed, symbolHint),
     ]);
 
@@ -83,6 +88,8 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
         edgar,
         attestation,
         aave,
+        governance,
+        redemptionHistory,
         rwaxyz,
     ];
 
@@ -93,6 +100,13 @@ export async function ingestQuant(assetId: string, opts: IngestOptions = {}): Pr
     // reconciling across sources. Absent -> the dimensions read `unknown`.
     if (aave.yield_source_data) record.yield_source_data = aave.yield_source_data;
     if (aave.market_risk_data) record.market_risk_data = aave.market_risk_data;
+
+    // v1.3 dimensions. governance attaches directly (one contract read). The
+    // redemption-restriction payload is assembled from TWO contributions — the
+    // live-pause/incident read and the EDGAR N-MFP fee signal — merged here.
+    if (governance.governance_data) record.governance_data = governance.governance_data;
+    const mergedRedemption = mergeRedemptionHistory(redemptionHistory.redemption_history_data, edgar.redemption_history_data);
+    if (mergedRedemption) record.redemption_history_data = mergedRedemption;
 
     // On-chain reconstruction runs AFTER supply/NAV are known, so coverage can
     // be measured against supply x NAV. Only assets with a verified reserve

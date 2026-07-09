@@ -534,7 +534,9 @@ export type DimensionKey =
     | "access"
     | "structure"
     | "yield_source"
-    | "market_risk";
+    | "market_risk"
+    | "governance"
+    | "redemption_history";
 
 export interface DimensionAssessment {
     flag: Flag;

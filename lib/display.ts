@@ -24,6 +24,8 @@ export const DIMENSION_TITLES: Record<string, string> = {
     structure: "Issuer & Structure",
     yield_source: "Yield Source",
     market_risk: "Market Risk",
+    governance: "Governance & Control",
+    redemption_history: "Redemption Restriction History",
 };
 
 export const FIELD_LABELS: Partial<Record<FieldName, string>> = {

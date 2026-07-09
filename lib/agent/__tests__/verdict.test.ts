@@ -17,6 +17,8 @@ function assessment(backing: DimensionAssessment): Assessment {
             structure: dim("unknown", "unverifiable"),
             yield_source: dim("unknown", "unverifiable"),
             market_risk: dim("unknown", "unverifiable"),
+            governance: dim("unknown", "unverifiable"),
+            redemption_history: dim("unknown", "unverifiable"),
         },
         computed_at: "2026-07-01T00:00:00Z",
     };
