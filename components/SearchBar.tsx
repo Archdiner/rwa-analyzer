@@ -40,7 +40,7 @@ export default function SearchBar({ autoFocus = false }: { autoFocus?: boolean }
                 setCandidates(result.hits);
             } else {
                 setError(
-                    "No match. Paste a contract address (0x…) — ticker/name search covers seeded assets only in v1.",
+                    "No match. Paste a contract address (0x...) - ticker/name search covers seeded assets only in v1.",
                 );
             }
         } catch {

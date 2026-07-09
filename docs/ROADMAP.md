@@ -194,6 +194,8 @@ The current UI tried to reject generic AI gloss but replaced it with **generic �
 
 > **Status (2026-07-08):** Phase 0 shipped. Full-surface redesign — layout, hero + live BENJI/OUSG thesis, decision explorer, ledger rows, search, and the asset RiskCard/source log — rebuilt on a restrained design system. Build green; verified in-browser on home + asset pages.
 
+> **Status (2026-07-08, visual DNA pass):** Second design pass to shed the "harsh terminal cosplay" read. Introduced a three-voice type system (Fraunces serif display for headlines, Geist sans for prose, mono for data only), warmer near-black + softer borders/rounding, and a hand-drawn blueprint line-art library (`components/marketing/Blueprints.tsx`: circuit traces, node-flow, concentric vault, emission steps, converging radial graph). Added a "one engine for wherever yield comes from" identity section (`YieldSourceGrid`) that surfaces the yield-source-category expansion (RWA backing → lending → staking → emissions) with honest Live/Researching/Planned status. Rebuilt the decision explorer selectors ("Where are you" / "How much") as calm pill segmented controls and the routes list as spacious verdict rows. Removed all em dashes from the UI surface.
+
 ---
 
 ### Phase 1 — Infrastructure wedge (weeks 2–4)

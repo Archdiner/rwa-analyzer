@@ -12,8 +12,8 @@ function formatValue(v: FieldValue): string {
     return String(v).replace(/_/g, " ");
 }
 
-/** A quiet, expandable source log. Shows the exact fields behind a dimension —
- *  value, provenance, and any verbatim citation — as legible records. */
+/** A quiet, expandable source log. Shows the exact fields behind a dimension -
+ *  value, provenance, and any verbatim citation - as legible records. */
 export default function SourceExpander({ inputs, fields }: { inputs: FieldName[]; fields: FieldMap }) {
     const [open, setOpen] = useState(false);
     const present = inputs.map((name) => ({ name, field: fields[name] })).filter((x) => x.field);

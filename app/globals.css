@@ -1,47 +1,60 @@
 @import "tailwindcss";
 
 /* -------------------------------------------------------------------------
-   RWA Reliability Analyzer — design system
+   RWA Reliability Analyzer - design system
    ---------------------------------------------------------------------------
-   "Field notes for tokenized assets." Warm paper, hairline rules, one
-   considered orange used sparingly. Sans for prose; mono only for data
-   (tickers, addresses, numbers, timestamps, eyebrow labels). Restraint over
-   decoration: no full-page grid, no chunky offset shadows, no bracket theater.
+   Flashy, highly-crafted dark blueprint aesthetic.
    ------------------------------------------------------------------------- */
 
 :root {
-    --bg: #fbfaf7; /* warm paper */
-    --bg-elev: #ffffff; /* panels */
-    --bg-elev-2: #f4f2ec; /* recessed / header fills */
-    --border: #e7e4dc; /* hairline */
-    --border-strong: #211f1b; /* emphasis rule (footer/header spine) */
-    --text: #171614; /* warm near-black ink */
-    --text-muted: #57544e;
-    --text-faint: #918d85;
+    /* Warmer near-black. The harshness before came from pure #050505 + hard
+       full-opacity borders, not from "dark". Slight warmth + softer lines. */
+    --bg: #0a0a0b;
+    --bg-elev: #101012;
+    --bg-elev-2: #17171a;
+    --border: rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.13);
+    --text: #f5f4f2;
+    --text-muted: rgba(245, 244, 242, 0.62);
+    --text-faint: rgba(245, 244, 242, 0.36);
 
-    /* One brand color. Used sparingly: mark, primary CTA, active state, links. */
-    --primary: #ff4a17;
-    --primary-hover: #e63e0f;
-    --primary-bg: #fff0ea;
+    --radius: 14px;
+    --radius-lg: 20px;
 
-    /* Status — reserved strictly for verdict flags. */
-    --green: #137a3e;
-    --green-bg: #e8f3ec;
-    --amber: #b4690e;
-    --amber-bg: #fbf0dc;
-    --red: #c4341e;
-    --red-bg: #fbe9e5;
-    --unknown: #918d85;
-    --unknown-bg: #f1efe9;
+    /* No chromatic brand color. The accent is a warm bone/off-white; saturated
+       color (green/amber/red) is reserved strictly for verdicts. This mirrors
+       the product's own logic - color means verdict, nothing else. */
+    --primary: #e8e2d6;
+    --primary-hover: #d6cfbf;
+    --primary-bg: rgba(232, 226, 214, 0.1);
+    --primary-contrast: #0a0a0b;
 
-    /* Eligibility gate — a restriction, not danger. */
-    --gate: #6d4ac7;
-    --gate-bg: #eee9f9;
+    /* Status - reserved strictly for verdict flags. */
+    --green: #10B981;
+    --green-bg: rgba(16, 185, 129, 0.1);
+    --amber: #F59E0B;
+    --amber-bg: rgba(245, 158, 11, 0.1);
+    --red: #EF4444;
+    --red-bg: rgba(239, 68, 68, 0.1);
+    --unknown: rgba(255, 255, 255, 0.35);
+    --unknown-bg: rgba(255, 255, 255, 0.05);
 
-    /* Confidence (extraction axis) — neutral, not brand. */
-    --verified: #171614;
-    --auto: #b4690e;
-    --unverifiable: #918d85;
+    /* Eligibility gate - a restriction, not danger. */
+    --gate: #8B5CF6;
+    --gate-bg: rgba(139, 92, 246, 0.1);
+
+    /* Confidence (extraction axis) - neutral, not brand. */
+    --verified: rgba(255, 255, 255, 0.8);
+    --auto: #F59E0B;
+    --unverifiable: rgba(255, 255, 255, 0.35);
+
+    /* Marketing hero (dryft-style dark band) */
+    --hero-bg: #050505;
+    --hero-elev: #0d0d0c;
+    --hero-border: rgba(255, 255, 255, 0.1);
+    --hero-text: #ffffff;
+    --hero-muted: rgba(255, 255, 255, 0.6);
+    --hero-faint: rgba(255, 255, 255, 0.35);
 }
 
 @theme inline {
@@ -56,6 +69,7 @@
     --color-primary: var(--primary);
     --color-primary-hover: var(--primary-hover);
     --color-primary-bg: var(--primary-bg);
+    --color-primary-contrast: var(--primary-contrast);
     --color-green: var(--green);
     --color-green-bg: var(--green-bg);
     --color-amber: var(--amber);
@@ -68,12 +82,17 @@
     --color-gate-bg: var(--gate-bg);
     --color-verified: var(--verified);
     --color-auto: var(--auto);
+    --color-hero-bg: var(--hero-bg);
+    --color-hero-elev: var(--hero-elev);
+    --color-hero-text: var(--hero-text);
+    --color-hero-muted: var(--hero-muted);
     --font-sans: var(--font-geist-sans);
     --font-mono: var(--font-geist-mono);
+    --font-serif: var(--font-fraunces);
 }
 
 html {
-    color-scheme: light;
+    color-scheme: dark;
 }
 
 body {
@@ -84,51 +103,117 @@ body {
     text-rendering: optimizeLegibility;
 }
 
+/* ── Typography voices ──────────────────────────────────────────────────────
+   Three voices, used with discipline:
+     serif (Fraunces)  -> large display headlines only (editorial, human)
+     sans  (Geist)     -> all UI prose
+     mono  (Geist Mono)-> data only: tickers, addresses, yields, timestamps    */
+
+.font-display {
+    font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+}
+
 /* ── Primitives ─────────────────────────────────────────────────────────── */
 
-/* Eyebrow / label: the only place mono + uppercase tracking lives. */
 .eyebrow {
     font-family: var(--font-mono), ui-monospace, monospace;
     font-size: 11px;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--text-faint);
 }
 
-/* Flat hairline panel — no shadow. Depth comes from the border, not elevation. */
-.panel {
-    background-color: var(--bg-elev);
+/* Small category label pill (Cantor8 CUSTODY / ISSUANCE / YIELD). */
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0.3rem 0.6rem;
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.02);
 }
 
-/* Interactive panel: a quiet lift on hover, orange hairline — no chunky offset. */
-.panel-link {
-    background-color: var(--bg-elev);
+/* The small ↗ affordance box in the corner of product cards. */
+.arrow-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
     border: 1px solid var(--border);
-    border-radius: 3px;
+    color: var(--text-muted);
+    background-color: rgba(255, 255, 255, 0.02);
     transition:
-        border-color 0.15s ease,
-        box-shadow 0.15s ease,
-        transform 0.15s ease;
+        color 0.2s ease,
+        border-color 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.panel {
+    background-color: rgba(16, 16, 18, 0.55);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+/* Soft elevated surface. Calm, rounded, gentle lift on hover - no hard glow. */
+.card {
+    position: relative;
+    background-color: rgba(16, 16, 18, 0.5);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    transition:
+        border-color 0.25s ease,
+        transform 0.25s ease,
+        background-color 0.25s ease;
+}
+.card-link:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+    background-color: rgba(22, 22, 25, 0.6);
+}
+.card-link:hover .arrow-box {
+    color: var(--primary);
+    border-color: var(--primary);
+    background-color: var(--primary-bg);
+}
+
+.panel-link {
+    background-color: rgba(16, 16, 18, 0.5);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition:
+        border-color 0.2s ease,
+        transform 0.2s ease,
+        background-color 0.2s ease;
 }
 .panel-link:hover {
-    border-color: var(--primary);
-    box-shadow: 0 1px 2px rgba(23, 22, 20, 0.04);
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+    background-color: rgba(22, 22, 25, 0.6);
 }
 
-/* Auto-extracted fields wear a visibly different dashed edge. */
 .confidence-auto {
     border-style: dashed;
 }
 
-/* Buttons ---------------------------------------------------------------- */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    border-radius: 3px;
+    border-radius: 10px;
     font-size: 0.875rem;
     font-weight: 500;
     line-height: 1;
@@ -141,7 +226,7 @@ body {
 }
 .btn-primary {
     background-color: var(--primary);
-    color: #fff;
+    color: var(--primary-contrast);
     border: 1px solid var(--primary);
 }
 .btn-primary:hover {
@@ -159,13 +244,13 @@ body {
 }
 .btn-ghost:hover {
     border-color: var(--text);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Inputs ----------------------------------------------------------------- */
 .field {
-    background-color: var(--bg-elev);
+    background-color: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border);
-    border-radius: 3px;
+    border-radius: 10px;
     transition:
         border-color 0.15s ease,
         box-shadow 0.15s ease;
@@ -174,23 +259,10 @@ body {
 .field:focus-visible {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--primary-bg);
+    box-shadow: 0 0 0 1px var(--primary);
 }
 
-/* ── Blueprint motif (contained) ───────────────────────────────────────────
-   The grid survives only here — inside the hero schematic — as a faint
-   backdrop, never across the whole page. */
-.blueprint {
-    background-color: var(--bg-elev);
-    background-image:
-        linear-gradient(var(--border) 1px, transparent 1px),
-        linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 22px 22px;
-    background-position: center;
-}
-
-/* Corner ticks: a small L-mark in each corner of a framed element. Subtle
-   nod to engineering drawings; applied only to the hero frame. */
+/* Corner ticks */
 .ticked {
     position: relative;
 }
@@ -215,4 +287,64 @@ body {
     right: -1px;
     border-bottom-width: 2px;
     border-right-width: 2px;
+}
+
+.hero-dark {
+    background-color: transparent;
+    color: var(--hero-text);
+}
+
+.hero-glow {
+    background: transparent;
+}
+
+/* ── Blueprint line-art motion ──────────────────────────────────────────────
+   The crafted centerpiece. Traces draw themselves once, then a slow current
+   pulses along them. Subtle, never flashy. Respects reduced motion.          */
+
+.trace {
+    stroke-dasharray: var(--len, 400);
+    stroke-dashoffset: var(--len, 400);
+    animation: trace-draw 1.6s ease forwards;
+}
+
+@keyframes trace-draw {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.trace-node {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: node-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes node-pulse {
+    0%,
+    100% {
+        opacity: 0.35;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+.current {
+    animation: current-flow 3s linear infinite;
+}
+
+@keyframes current-flow {
+    to {
+        stroke-dashoffset: -60;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .trace,
+    .trace-node,
+    .current {
+        animation: none;
+        stroke-dashoffset: 0;
+    }
 }

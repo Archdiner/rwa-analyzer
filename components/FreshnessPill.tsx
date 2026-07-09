@@ -16,7 +16,7 @@ const MAP: Record<Freshness, { dot: string; text: string; label: string; title: 
         dot: "bg-amber",
         text: "text-amber",
         label: "Aging",
-        title: "Evidence is past its expected refresh but not yet stale — read with caution.",
+        title: "Evidence is past its expected refresh but not yet stale - read with caution.",
     },
     stale: {
         dot: "bg-red",

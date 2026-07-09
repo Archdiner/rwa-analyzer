@@ -28,7 +28,7 @@ export default function RiskCard({
     const dims = assessment.dimensions;
 
     // The backing freshness pill's "updates ~date" comes from the strongest
-    // (most independent) usable evidence item — the same one the verdict rests on.
+    // (most independent) usable evidence item - the same one the verdict rests on.
     const usableEvidence = (record.backing_evidence ?? []).filter((e) => e.confidence !== "unverifiable");
     const strongestEvidence = usableEvidence.length
         ? usableEvidence.reduce((a, b) => (b.independence > a.independence ? b : a))
@@ -67,7 +67,7 @@ export default function RiskCard({
             {qualitativePending && (
                 <div className="flex items-center gap-2 border-b border-border bg-bg-elev px-6 py-2.5 text-xs text-text-muted">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Analyzing issuer documents — structure, redemption, and eligibility will fill in shortly.
+                    Analyzing issuer documents - structure, redemption, and eligibility will fill in shortly.
                     <PendingRefresher />
                 </div>
             )}
@@ -76,13 +76,13 @@ export default function RiskCard({
                 <div className="flex items-start gap-2 border-b border-border bg-amber-bg px-6 py-3 text-xs text-amber">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>
-                        Sources disagree on {conflicts.map((c) => FIELD_LABELS[c.field] ?? c.field).join(", ")} —
+                        Sources disagree on {conflicts.map((c) => FIELD_LABELS[c.field] ?? c.field).join(", ")} -
                         treated as a risk signal and confidence downgraded.
                     </span>
                 </div>
             )}
 
-            {/* Backing leads — it is the whole point. */}
+            {/* Backing leads - it is the whole point. */}
             <div className="px-6">
                 <DimensionRow
                     dimensionKey="backing"
@@ -111,7 +111,7 @@ export default function RiskCard({
 
             {/* Footer */}
             <div className="flex items-center justify-between border-t border-border px-6 py-3.5 text-[11px] text-text-faint">
-                <span>Information, not financial advice. We rate assets, not decisions.</span>
+                <span>Information, not financial advice. I rate assets, not decisions.</span>
                 <span className="font-mono">
                     computed {new Date(computedAt).toISOString().slice(0, 16).replace("T", " ")}Z
                 </span>
