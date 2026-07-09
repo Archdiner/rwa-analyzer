@@ -1,16 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+import { Bodoni_Moda, Bricolage_Grotesque, DM_Mono } from "next/font/google";
 import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
 import { GITHUB_URL } from "@/lib/site";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-const fraunces = Fraunces({
-    variable: "--font-fraunces",
+const bodoni = Bodoni_Moda({
+    variable: "--font-bodoni",
     subsets: ["latin"],
     weight: ["400", "500"],
     style: ["normal", "italic"],
+});
+
+const bricolage = Bricolage_Grotesque({
+    variable: "--font-bricolage",
+    subsets: ["latin"],
+    weight: ["400", "500", "600"],
+});
+
+const dmMono = DM_Mono({
+    variable: "--font-dm-mono",
+    subsets: ["latin"],
+    weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -26,7 +36,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     return (
         <html
             lang="en"
-            className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+            className={`${bricolage.variable} ${dmMono.variable} ${bodoni.variable} h-full antialiased`}
         >
             <body className="relative flex min-h-full flex-col bg-bg text-text">
                 <SiteHeader />

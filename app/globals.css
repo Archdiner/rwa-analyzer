@@ -86,9 +86,9 @@
     --color-hero-elev: var(--hero-elev);
     --color-hero-text: var(--hero-text);
     --color-hero-muted: var(--hero-muted);
-    --font-sans: var(--font-geist-sans);
-    --font-mono: var(--font-geist-mono);
-    --font-serif: var(--font-fraunces);
+    --font-sans: var(--font-bricolage);
+    --font-mono: var(--font-dm-mono);
+    --font-serif: var(--font-bodoni);
 }
 
 html {
@@ -105,14 +105,14 @@ body {
 
 /* ── Typography voices ──────────────────────────────────────────────────────
    Three voices, used with discipline:
-     serif (Fraunces)  -> large display headlines only (editorial, human)
-     sans  (Geist)     -> all UI prose
-     mono  (Geist Mono)-> data only: tickers, addresses, yields, timestamps    */
+     serif (Bodoni Moda)       -> large display headlines only (print contrast)
+     sans  (Bricolage Grotesque)-> all UI prose
+     mono  (DM Mono)           -> data only: tickers, addresses, yields, timestamps */
 
 .font-display {
     font-family: var(--font-serif), Georgia, "Times New Roman", serif;
     font-weight: 400;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
 }
 
 /* ── Primitives ─────────────────────────────────────────────────────────── */
