@@ -16,7 +16,15 @@ The verdict is deliberately **not collapsible to a boolean**. There is no `safe:
 
 **MCP (the main event).** Stdio server with `check_asset_backing` and `list_verified_assets`.
 
-One-line install (no clone):
+One-command install for Claude Code (no clone):
+
+```bash
+claude mcp add rwa-backing-verifier \
+  -e RWA_API_BASE=https://rwa-analyzer.vercel.app \
+  -- npx -y -p @archdiner/rwa-verify@latest rwa-verify-mcp
+```
+
+Any other MCP client, drop this in its config:
 
 ```json
 {
@@ -72,7 +80,7 @@ The LLM lives only in ingestion (prose → structured fields). Scoring is determ
 
 Backing reads a `backing_evidence[]` array (Contract A), not a single reserves number. Each item has two independent axes:
 
-- **Independence** (who wrote the evidence) sets the **ceiling color**. A regulator filing (EDGAR) or an on-chain read of an independently proven reserve can reach green; an issuer self-report, however cleanly parsed, cannot.
+- **Independence** (who wrote the evidence) sets the **ceiling color**. A regulator filing (EDGAR, independence 5) or an on-chain read of an independently proven reserve can reach green; an auditor attestation (Lane C, independence 4) can too, but capped one notch lower at `auto`. An issuer self-report, however cleanly parsed, can't reach green at all.
 - **Extraction** (how we read the number) sets the **confidence label**. On-chain read = `verified`; parsed PDF figure = `auto` ("check the citation").
 
 Two rules keep this honest:
@@ -154,13 +162,19 @@ Smart-contract/oracle depth, secondary-liquidity depth, duration modeling, human
 
 ## The honest headline
 
-Verified-**green** backing on tokenized RWAs is genuinely hard. This tool produces it where it can and refuses to fake it everywhere else. The flagship money funds ship **no** Chainlink Proof-of-Reserve feed, so the only paths to a real green are a **regulator filing** (EDGAR, for registered funds) or **on-chain reconstruction** (reading reserves directly). Reconstruction only works when the reserve wallet is **published and attributable**.
+Verified-**green** backing on tokenized RWAs is genuinely hard. This tool produces it where it can and refuses to fake it everywhere else. The flagship money funds ship **no** Chainlink Proof-of-Reserve feed, so a green has to come from one of three lanes, in descending order of how much you have to trust a human:
+
+1. **Regulator filing** (EDGAR, for registered funds): independence 5, the only lane that reaches `verified` green. This is BENJI.
+2. **On-chain reconstruction** (reading reserves directly): `verified` too, but only when the reserve wallet is actually **published and attributable**. For the flagships, it mostly isn't.
+3. **Auditor attestation** (Lane C, a CPA or administrator PDF): independence 4, so it can go green, but never past `auto`. A visibly lesser cell than a regulator filing, and it *still* has to reconcile against supply × NAV before it counts. We don't take the auditor's word for it; we make their number agree with the chain.
+
+No lane gets a shortcut. Green rests on arithmetic and string equality no matter which door it came through.
 
 The two flagship cards, side by side, are the whole thesis in one screen:
 
 **BENJI: genuine green, through regulation** (live EDGAR read, filing dated 2026-06-30). Franklin's on-chain token is a share of FOBXX, a registered '40-Act Government money-market fund (SEC series S000067043). Its monthly **N-MFP3** filing reports whole-fund net assets of **$753.2M**, a market-based (shadow) NAV pegged at **$1.0000** across every June observation, holdings **100% U.S. Treasuries / agency debt / Treasury repo**, and a 53-day WAM. Regulator-grade, independent, machine-readable. The on-chain Ethereum slice is only **$47.8M (6.35% of the fund)**, so a naive `supply × NAV` check would fire a **~1,475% false red**. `tokenization_mode: tranche_of_registered_fund` skips that category-inapplicable reconciliation and confers green via **regulated structure + NAV integrity** instead. This is the one flagship that goes genuinely green, and it does so through regulation, not a reconstructed balance.
 
-**OUSG: honest unknown, because on-chain doesn't mean verifiable here** (verified on-chain 2026-07-07). The "read OUSG's BUIDL on-chain" story does **not** hold: every Ondo-published Ethereum address holds **0 BUIDL**; the reserves sit in segregated accounts at third-party custodians (Clear Street / Coinbase Custody) for the Ondo I LP SPV. Ondo does not attribute those addresses publicly. On-chain reconstruction resolves **0%** of OUSG's backing to an attributable wallet; its real proof is Ankura Trust's **off-chain** attestation. The tool renders `unknown` (until that attestation is parsed) rather than inventing a green.
+**OUSG: honest unknown, because on-chain doesn't mean verifiable here** (verified on-chain 2026-07-07). The "read OUSG's BUIDL on-chain" story does **not** hold: every Ondo-published Ethereum address holds **0 BUIDL**; the reserves sit in segregated accounts at third-party custodians (Clear Street / Coinbase Custody) for the Ondo I LP SPV. Ondo does not attribute those addresses publicly. On-chain reconstruction resolves **0%** of OUSG's backing to an attributable wallet; its real proof is Ankura Trust's **off-chain** attestation. Lane C is already wired for it (`attestation-registry.ts`), but Ondo's transparency page is a JS-rendered dashboard with no citable reserve figure, so there's nothing to quote and the citation guard has nothing to check. The tool renders `unknown` rather than inventing a green, and it starts working the moment Ondo ships a machine-readable attestation. The unknown is a promise, not a shrug.
 
 That pair is the point: here is what real verification looks like, and here is how rarely this asset class can actually offer it. The narrowness is the product.
 

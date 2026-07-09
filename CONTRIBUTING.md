@@ -23,9 +23,11 @@ Thanks for showing up. This project prefers **honest unknowns** over a leaderboa
 
 ## Adding an attestation (Lane C)
 
-1. Confirm the PDF/HTML URL is stable and has numbers you can cite.
-2. Add it to `attestation-registry.ts` with issuer metadata.
-3. Remember: attestations cap at `verified_backed` + `auto`, never `verified`. Green still needs the arithmetic/citation guards. No shortcuts.
+Lane C is the coverage lane for assets with no SEC filing: most tokenized treasuries and private credit, where the only real proof is a CPA or administrator PDF. It's deliberately the weakest green-capable lane, and that's the point: it extends coverage without pretending an auditor is a regulator.
+
+1. **The URL has to actually contain a number you can quote.** A JS-rendered dashboard with no citable reserve figure (hi, OUSG) is not an attestation the engine can use. The citation guard needs a verbatim string to check; no string, no green, honest `unknown`. Confirm the PDF/HTML is stable and has real figures before you touch the registry.
+2. **Add it to `attestation-registry.ts`** with issuer metadata and a `verified_at` date. This map mints greens, so a wrong URL could fetch the wrong document and manufacture a false one, exactly the failure this project exists to prevent. Only add a row after a human eyeballs the URL against the issuer's official transparency page.
+3. **Know the ceiling.** Attestations cap at `verified_backed` + `auto`, never `verified` (independence 4, not 5). And a green *still* has to clear supply × NAV. We don't trust the CPA blindly; we make their number reconcile against the on-chain float. No shortcuts, no exceptions, no "but this auditor is really reputable."
 
 ## Code conventions
 

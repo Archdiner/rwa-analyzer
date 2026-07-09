@@ -4,6 +4,16 @@ One engine, three doors. Same verdict whether you hit HTTP, the CLI, or MCP.
 
 Under the hood it's always `toAgentVerdict` in `lib/agent/verdict.ts`. There is **no `safe: true` boolean** (we checked twice). Agents need to read `tier`, `confidence`, `freshness`, and whatever lands in `caveats`. Together. Like a responsible adult.
 
+### How a green is earned (three lanes)
+
+Three doors in, but a green `tier: verified_backed` only comes out through one of three evidence lanes, and the verdict always tells you which one. In descending order of how much you have to trust a human:
+
+1. **Regulator filing** (EDGAR N-MFP, for registered funds): independence 5, the only lane that reaches `verified` green. BENJI rides this one.
+2. **On-chain reconstruction** (reserves read straight off chain): `verified` too, but only when the reserve wallet is actually published and attributable. Often it isn't.
+3. **Auditor attestation** (Lane C, a CPA/administrator PDF): independence 4, green-capable but capped at `auto`, never `verified`. A visibly lesser cell, and the number *still* has to reconcile against supply × NAV before it counts.
+
+No lane skips the arithmetic. If nothing reconciles, you get an honest `unverifiable`, not a hopeful green. `unverifiable` is not "unsafe", and a missing red flag is not a green light. Read `meaning` + `trust_boundary` + `caveats` and let the human decide.
+
 ## Surfaces
 
 | Surface | Entry | Install |
@@ -28,6 +38,22 @@ Under the hood it's always `toAgentVerdict` in `lib/agent/verdict.ts`. There is 
 No API keys needed for CLI/MCP when you use the hosted API. Seriously. We meant it.
 
 ## MCP configuration by client
+
+### Claude Code (one command, no clone)
+
+Paste this into your terminal and you're done:
+
+```bash
+claude mcp add rwa-backing-verifier \
+  -e RWA_API_BASE=https://rwa-analyzer.vercel.app \
+  -- npx -y -p @archdiner/rwa-verify@latest rwa-verify-mcp
+```
+
+Prefer to let the agent do it? Paste this into a Claude Code chat instead:
+
+> Add an MCP server named `rwa-backing-verifier` that runs `npx -y -p @archdiner/rwa-verify@latest rwa-verify-mcp` with env `RWA_API_BASE=https://rwa-analyzer.vercel.app`, then call `list_verified_assets` so I know it's live.
+
+Either way, ask it to `check_asset_backing OUSG` to confirm the wiring.
 
 ### Cursor (you cloned this repo)
 

@@ -17,8 +17,8 @@
   },
   "type": "module",
   "bin": {
-    "rwa-verify": "./dist/cli.js",
-    "rwa-verify-mcp": "./dist/mcp.js"
+    "rwa-verify": "dist/cli.js",
+    "rwa-verify-mcp": "dist/mcp.js"
   },
   "files": [
     "dist",
