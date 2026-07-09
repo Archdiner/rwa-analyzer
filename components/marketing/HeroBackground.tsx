@@ -1,44 +1,23 @@
-"use client";
-
-import { useEffect, useRef } from "react";
+import Image from "next/image";
 
 /* -----------------------------------------------------------------------------
-   Hero background - bg-animation.mp4 on first screen only.
+   Hero background — static hero-bg.png on first screen only.
    -----------------------------------------------------------------------------
-   The looping video lives inside the hero band (100svh), not site-wide. Angled
-   fades keep the headline readable on the left while the safe stays visible on
-   the right; the bottom dissolves to solid black so everything below is plain.
+   Lives inside the hero band (100svh), not site-wide. Angled fades keep the
+   headline readable on the left while the safe stays visible on the right; the
+   bottom dissolves to solid black so everything below is plain.
 --------------------------------------------------------------------------------*/
 
 export default function HeroBackground() {
-    const videoRef = useRef<HTMLVideoElement>(null);
-
-    useEffect(() => {
-        const v = videoRef.current;
-        if (!v) return;
-
-        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-        const sync = () => {
-            if (reduced.matches) v.pause();
-            else void v.play().catch(() => {});
-        };
-
-        sync();
-        reduced.addEventListener("change", sync);
-        return () => reduced.removeEventListener("change", sync);
-    }, []);
-
     return (
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden bg-bg">
-            <video
-                ref={videoRef}
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
-                className="absolute inset-0 h-full w-full object-cover object-[78%_center] opacity-[0.72] sm:object-[72%_center] sm:opacity-[0.78]"
-                src="/bg-animation.mp4"
+            <Image
+                src="/hero-bg.png"
+                alt=""
+                fill
+                priority
+                sizes="100vw"
+                className="object-cover object-[78%_center] opacity-[0.72] sm:object-[72%_center] sm:opacity-[0.78]"
             />
 
             {/* Text scrim — stronger on mobile where the safe fills more of the frame */}
