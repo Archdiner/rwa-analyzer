@@ -79,10 +79,7 @@ export default function ReconciliationScanner() {
     const [phase, setPhase] = useState<Phase>("reading");
 
     useEffect(() => {
-        if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-            setPhase("matched");
-            return;
-        }
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
         let cancelled = false;
         const loop = async () => {
             while (!cancelled) {

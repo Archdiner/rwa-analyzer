@@ -199,11 +199,7 @@ export default function AgentRouter() {
     const [asset, setAsset] = useState<"BENJI" | "OUSG">("BENJI");
 
     useEffect(() => {
-        if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-            setAsset("BENJI");
-            setState("approved");
-            return;
-        }
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
         let cancelled = false;
         const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
         const run = async () => {
