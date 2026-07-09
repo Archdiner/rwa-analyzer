@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "rwa-backing-verifier": {
+      "command": "npm",
+      "args": ["run", "mcp"],
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}

@@ -10,22 +10,25 @@ This rates **assets** on public facts and **never holds your money** — you dep
 
 The core is a function — asset in, honest verdict out — exposed three ways over one server-side contract (`lib/agent/verdict.ts`, `GET /api/verify`). The verdict is deliberately **un-collapsible to a boolean**: there is no `safe: true`. Backing is two orthogonal axes you must read together — `tier` (`verified_backed | partially_verified | does_not_reconcile | unverifiable`) and `confidence` (`verified | auto | unverifiable`) — plus a `meaning` sentence, a `trust_boundary`, and `caveats` that are required non-empty unless the verdict is fully verified. `verified_backed` means the backing reconciled against a named independent source; it is **not** a safety guarantee, and `unverifiable` is **not** a judgment of danger — absence of a red flag is not a green light.
 
-**MCP (the primary artifact).** A stdio server exposing `check_asset_backing` and `list_verified_assets`. Register it with any MCP client:
+**MCP (the primary artifact).** Stdio server with `check_asset_backing` and `list_verified_assets`.
+
+One-line install (no clone):
 
 ```json
 {
   "mcpServers": {
     "rwa-backing-verifier": {
       "command": "npx",
-      "args": ["tsx", "mcp/server.ts"],
-      "cwd": "/absolute/path/to/rwa-analyzer",
+      "args": ["-y", "-p", "@archdiner/rwa-verify@latest", "rwa-verify-mcp"],
       "env": { "RWA_API_BASE": "https://rwa-analyzer.vercel.app" }
     }
   }
 }
 ```
 
-**CLI.** `npm run verify -- ousg` (or any ticker / `{chainId}:{address}`). Points at the deployed API by default; set `RWA_API_BASE` for a local server. The tier is printed, never encoded in the exit code — you read the verdict, you don't branch on `0/1`.
+Cloned repo: `.cursor/mcp.json` is preconfigured (`npm run mcp`). See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) for Cursor, Claude Desktop, VS Code, and Windsurf.
+
+**CLI.** `npx -y -p @archdiner/rwa-verify rwa-verify OUSG` — or `npm run verify -- ousg` from a clone. Points at the deployed API by default; set `RWA_API_BASE` for a local server. The tier is printed, never encoded in the exit code — you read the verdict, you don't branch on `0/1`.
 
 **HTTP.** `GET /api/verify?asset=OUSG` returns the same `AgentVerdict` JSON.
 
@@ -129,12 +132,17 @@ npm run seed                 # ingests + stores the flagship assets
 ## Commands
 
 ```bash
-npm run dev      # dev server
-npm run build    # production build
-npm run lint     # eslint
-npm run test     # jest (rule boundaries + the three code-enforced invariants)
-npm run seed     # ingest + store flagship assets
+npm run dev          # dev server
+npm run build        # production build
+npm run lint         # eslint
+npm run test         # jest (rule boundaries + invariants)
+npm run seed         # ingest + store flagship assets
+npm run verify       # CLI (local dev)
+npm run mcp          # MCP stdio server (local dev)
+npm run build:verify # bundle publishable @archdiner/rwa-verify package
 ```
+
+Integrations (MCP configs for Cursor, Claude, VS Code): [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
 ## Out of scope (v1)
 

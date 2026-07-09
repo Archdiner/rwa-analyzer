@@ -1,0 +1,46 @@
+{
+  "name": "@archdiner/rwa-verify",
+  "version": "0.1.0",
+  "description": "MCP server and CLI for machine-readable RWA backing verification",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Archdiner/rwa-analyzer.git",
+    "directory": "packages/rwa-verify"
+  },
+  "homepage": "https://github.com/Archdiner/rwa-analyzer#readme",
+  "bugs": {
+    "url": "https://github.com/Archdiner/rwa-analyzer/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "bin": {
+    "rwa-verify": "./dist/cli.js",
+    "rwa-verify-mcp": "./dist/mcp.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "typescript": "^5"
+  },
+  "keywords": [
+    "mcp",
+    "rwa",
+    "tokenized-assets",
+    "backing-verification",
+    "model-context-protocol"
+  ]
+}

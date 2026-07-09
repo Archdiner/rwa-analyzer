@@ -16,5 +16,5 @@ module.exports = {
         ],
     },
     // On-chain / network fixtures live behind adapters; unit suites are pure.
-    testPathIgnorePatterns: ["/node_modules/", "/.next/"],
+    testPathIgnorePatterns: ["/node_modules/", "/.next/", "/.worktrees/"],
 };
