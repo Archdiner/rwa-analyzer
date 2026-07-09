@@ -101,4 +101,15 @@ describe("assessRedemptionHistory", () => {
         const r = assessRedemptionHistory(recWith(rh({ underlying_ceiling: "amber" })));
         expect(r.flag).toBe("amber");
     });
+
+    it("a month-old N-MFP fee flag stays green — monthly cadence, not the daily on-chain one", () => {
+        // Registered MMF: no on-chain pause, fee flag from a filing ~20 days old.
+        // Against a 24h cadence this would wrongly go stale/unknown; against the
+        // monthly cadence a 20-day-old filing is live.
+        const r = assessRedemptionHistory(
+            recWith(rh({ current_paused: bread(null), current_frozen: bread(null), latest_fee_flag: feeRead(false, daysAgo(20)) })),
+        );
+        expect(r.flag).toBe("green");
+        expect(r.freshness).toBe("live");
+    });
 });

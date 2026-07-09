@@ -12,7 +12,7 @@
 // unreadable stays null -> unknown. Degrades to EMPTY on RPC failure.
 // ---------------------------------------------------------------------------
 
-import { parseAbi, toFunctionSelector, getAddress, type Address } from "viem";
+import { parseAbi, getAddress, type Address } from "viem";
 import { getClient } from "@/lib/chains";
 import type { ParsedAssetId } from "@/lib/chains";
 import { type AdapterResult, EMPTY } from "@/lib/ingestion/adapters/base";
@@ -28,12 +28,10 @@ import { lookupAdminLabel } from "@/lib/ingestion/adapters/governance-registry";
 
 type Client = NonNullable<ReturnType<typeof getClient>>;
 
-const PROXY_SELECTORS = [
-    toFunctionSelector("function upgradeTo(address)"),
-    toFunctionSelector("function upgradeToAndCall(address,bytes)"),
-    toFunctionSelector("function implementation() view returns (address)"),
-    toFunctionSelector("function admin() view returns (address)"),
-];
+const PROXY_VIEW_ABI = parseAbi([
+    "function implementation() view returns (address)",
+    "function admin() view returns (address)",
+]);
 const OWNABLE_ABI = parseAbi(["function owner() view returns (address)"]);
 const SAFE_ABI = parseAbi([
     "function getThreshold() view returns (uint256)",
@@ -54,7 +52,11 @@ async function probeAdmin(client: Client, admin: Address) {
     let safeThreshold: number | null = null;
     let safeOwnerCount: number | null = null;
     let timelockDelaySeconds: number | null = null;
-    if (isContract) {
+    // Run the interface probes unless we KNOW it's an EOA. A transient getCode
+    // failure (isContract === null) must not skip them — the readContract calls
+    // themselves reveal contract-ness (a successful getThreshold IS the proof),
+    // so a failed getCode no longer flips a real timelock/Safe to unclassifiable.
+    if (isContract !== false) {
         const [t, owners] = await Promise.all([
             client.readContract({ address: admin, abi: SAFE_ABI, functionName: "getThreshold" }).catch(() => null),
             client.readContract({ address: admin, abi: SAFE_ABI, functionName: "getOwners" }).catch(() => null),
@@ -67,6 +69,12 @@ async function probeAdmin(client: Client, admin: Address) {
         if (delay != null) timelockDelaySeconds = Number(delay);
     }
     return { isContract, safeThreshold, safeOwnerCount, timelockDelaySeconds };
+}
+
+/** A non-zero address from a proxy view call, else null. */
+function nonZero(addr: string | null): string | null {
+    if (!addr) return null;
+    return /^0x0{40}$/i.test(addr) ? null : getAddress(addr);
 }
 
 export async function governanceAdapter(asset: ParsedAssetId): Promise<AdapterResult> {
@@ -85,13 +93,21 @@ export async function governanceAdapter(asset: ParsedAssetId): Promise<AdapterRe
             readSlotAddress(client, address, EIP1967_ADMIN_SLOT),
             readSlotAddress(client, address, EIP1967_BEACON_SLOT),
         ]);
-        const hasProxySelectors = PROXY_SELECTORS.some((sel) => code.includes(sel.slice(2)));
+        // Reliable proxy detection: actually CALL implementation()/admin(). A
+        // coincidental bytecode match can't make a non-proxy return an address.
+        const [implCallRaw, adminCallRaw] = await Promise.all([
+            client.readContract({ address, abi: PROXY_VIEW_ABI, functionName: "implementation" }).catch(() => null),
+            client.readContract({ address, abi: PROXY_VIEW_ABI, functionName: "admin" }).catch(() => null),
+        ]);
+        const implCall = nonZero(implCallRaw ?? null);
+        const adminCall = nonZero(adminCallRaw ?? null);
 
-        // Upgrade authority: transparent admin slot, else owner() (UUPS/Ownable).
-        const owner = adminSlot
-            ? null
-            : await client.readContract({ address, abi: OWNABLE_ABI, functionName: "owner" }).catch(() => null);
-        const adminAddr = adminSlot ?? (owner ? getAddress(owner) : null);
+        // Upgrade authority: transparent admin slot, then admin() call, else owner().
+        const owner =
+            adminSlot || adminCall
+                ? null
+                : await client.readContract({ address, abi: OWNABLE_ABI, functionName: "owner" }).catch(() => null);
+        const adminAddr = adminSlot ?? adminCall ?? (owner ? getAddress(owner) : null);
 
         let adminProbe = { isContract: null as boolean | null, safeThreshold: null as number | null, safeOwnerCount: null as number | null, timelockDelaySeconds: null as number | null };
         if (adminAddr) adminProbe = await probeAdmin(client, getAddress(adminAddr));
@@ -102,7 +118,8 @@ export async function governanceAdapter(asset: ParsedAssetId): Promise<AdapterRe
             impl,
             adminSlot,
             beacon,
-            hasProxySelectors,
+            implCall,
+            adminCall,
             owner: owner ? getAddress(owner) : null,
             adminIsContract: adminProbe.isContract,
             safeThreshold: adminProbe.safeThreshold,

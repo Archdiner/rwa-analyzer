@@ -15,7 +15,8 @@ function raw(overrides: Partial<RawGovernanceReads> = {}): RawGovernanceReads {
         impl: null,
         adminSlot: null,
         beacon: null,
-        hasProxySelectors: false,
+        implCall: null,
+        adminCall: null,
         owner: null,
         adminIsContract: null,
         safeThreshold: null,
@@ -49,12 +50,12 @@ describe("governance pure shaping", () => {
         it("impl only -> uups, upgradeable", () => {
             expect(classifyProxy(raw({ impl: "0xi" }))).toEqual({ pattern: "uups", isUpgradeable: true });
         });
-        it("proxy selectors without EIP-1967 slots -> unknown pattern, still upgradeable (USDC-class)", () => {
-            expect(classifyProxy(raw({ hasProxySelectors: true }))).toEqual({ pattern: "unknown", isUpgradeable: true });
+        it("a live implementation() call without EIP-1967 slots -> unknown pattern, upgradeable (USDC-class)", () => {
+            expect(classifyProxy(raw({ implCall: "0ximpl" }))).toEqual({ pattern: "unknown", isUpgradeable: true });
         });
-        it("NO markers -> unknown pattern, upgradeability UNKNOWN (never false) — the anti-false-green rule", () => {
-            // BUIDL-class: a bespoke proxy with no EIP-1967 slots and no standard
-            // selectors must NOT be classified immutable.
+        it("NO markers and no implementation() response -> upgradeability UNKNOWN (never false) — anti-false-green", () => {
+            // BUIDL-class: a bespoke proxy with no EIP-1967 slots and no live
+            // implementation() response must NOT be classified immutable.
             expect(classifyProxy(raw())).toEqual({ pattern: "unknown", isUpgradeable: null });
         });
     });
@@ -80,8 +81,18 @@ describe("governance pure shaping", () => {
         it("no resolvable admin -> unknown", () => {
             expect(classifyAdmin(raw()).adminType).toBe("unknown");
         });
-        it("resolveAdmin prefers the transparent admin slot over owner()", () => {
-            expect(resolveAdmin(raw({ adminSlot: "0xslot", owner: "0xowner" }))).toBe("0xslot");
+        it("classifies via successful probes even when getCode was inconclusive (isContract null)", () => {
+            // Fix: a failed getCode must not skip the probes — a successful
+            // getMinDelay still identifies a timelock.
+            expect(classifyAdmin(raw({ owner: "0xtl", adminIsContract: null, timelockDelaySeconds: 172800 })).adminType).toBe("timelock");
+        });
+        it("a contract answering BOTH timelock and Safe interfaces -> contract_unknown (never a strong-control green)", () => {
+            expect(classifyAdmin(raw({ owner: "0xc", adminIsContract: true, timelockDelaySeconds: 172800, safeThreshold: 3, safeOwnerCount: 5 })).adminType).toBe("contract_unknown");
+        });
+        it("resolveAdmin prefers slot > admin() call > owner()", () => {
+            expect(resolveAdmin(raw({ adminSlot: "0xslot", adminCall: "0xcall", owner: "0xowner" }))).toBe("0xslot");
+            expect(resolveAdmin(raw({ adminCall: "0xcall", owner: "0xowner" }))).toBe("0xcall");
+            expect(resolveAdmin(raw({ owner: "0xowner" }))).toBe("0xowner");
         });
     });
 

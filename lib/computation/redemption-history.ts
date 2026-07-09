@@ -21,11 +21,29 @@ import {
     type RedemptionHistoryData,
     type RedemptionIncident,
 } from "@/lib/contracts";
-import { finalizeReadDimension, unknownDimension } from "@/lib/computation/dimension";
+import { finalizeReadDimension, unknownDimension, ONCHAIN_CADENCE_MS } from "@/lib/computation/dimension";
 import { hasAssessmentBasis } from "@/lib/ingestion/redemption-history";
+import { freshnessAt } from "@/lib/computation/freshness";
 import { shortDate } from "@/lib/computation/util";
 
 const INPUTS: FieldName[] = [];
+// N-MFP is a MONTHLY filing; a month-old fee flag is `live`, not stale. Measuring
+// it against the daily on-chain cadence would wrongly demote every registered MMF.
+const MONTHLY_CADENCE_MS = 35 * 24 * 60 * 60 * 1000;
+
+/** Picks the freshness driver: the signal most stale RELATIVE TO ITS OWN cadence
+ *  (on-chain reads daily, the N-MFP fee flag monthly), so a fresh live read and a
+ *  month-old monthly filing both read `live`. */
+function governingFreshness(data: RedemptionHistoryData): { asOf: string; cadenceMs: number } {
+    const signals: { asOf: string; cadenceMs: number }[] = [];
+    if (data.current_paused.value != null) signals.push({ asOf: data.current_paused.as_of, cadenceMs: ONCHAIN_CADENCE_MS });
+    if (data.current_frozen.value != null) signals.push({ asOf: data.current_frozen.as_of, cadenceMs: ONCHAIN_CADENCE_MS });
+    if (data.latest_fee_flag.value != null) signals.push({ asOf: data.latest_fee_flag.as_of, cadenceMs: MONTHLY_CADENCE_MS });
+    if (signals.length === 0) return { asOf: data.current_paused.as_of, cadenceMs: ONCHAIN_CADENCE_MS };
+    return signals.reduce((worst, s) =>
+        freshnessAt(s.asOf, s.cadenceMs).ratio > freshnessAt(worst.asOf, worst.cadenceMs).ratio ? s : worst,
+    );
+}
 
 function describeIncident(i: RedemptionIncident): string {
     const when = shortDate(i.as_of);
@@ -56,10 +74,10 @@ export function assessRedemptionHistory(record: NormalizedAssetRecord): Dimensio
         ? " Regulatory redemption gates are structurally unavailable for money market funds post-Oct-2023; this tracks liquidity fees."
         : "";
 
-    // Freshness ages the claim from the oldest verified read that drove it.
-    const asOf = verifiedUsed.length
-        ? verifiedUsed.reduce((oldest, r) => (new Date(r.as_of).getTime() < new Date(oldest).getTime() ? r.as_of : oldest), verifiedUsed[0].as_of)
-        : data.current_paused.as_of;
+    // Freshness ages the claim by each signal's OWN cadence (on-chain daily,
+    // N-MFP monthly) so a normal month-old filing does not wrongly demote it.
+    const fresh = governingFreshness(data);
+    const asOf = fresh.asOf;
 
     // 1. Currently paused/frozen on-chain — the strongest, verified signal.
     if (pausedNow) {
@@ -69,6 +87,7 @@ export function assessRedemptionHistory(record: NormalizedAssetRecord): Dimensio
             used: verifiedUsed,
             asOf,
             inputs: INPUTS,
+            cadenceMs: fresh.cadenceMs,
             ceiling: data.underlying_ceiling,
         });
     }
@@ -82,6 +101,7 @@ export function assessRedemptionHistory(record: NormalizedAssetRecord): Dimensio
             used: [...verifiedUsed, autoMarker],
             asOf,
             inputs: INPUTS,
+            cadenceMs: fresh.cadenceMs,
             ceiling: data.underlying_ceiling,
         });
     }
@@ -99,6 +119,7 @@ export function assessRedemptionHistory(record: NormalizedAssetRecord): Dimensio
             used: drivenByCurated ? [...verifiedUsed, autoMarker] : verifiedUsed,
             asOf,
             inputs: INPUTS,
+            cadenceMs: fresh.cadenceMs,
             ceiling: data.underlying_ceiling,
         });
     }
@@ -111,6 +132,7 @@ export function assessRedemptionHistory(record: NormalizedAssetRecord): Dimensio
         used: verifiedUsed,
         asOf,
         inputs: INPUTS,
+        cadenceMs: fresh.cadenceMs,
         ceiling: data.underlying_ceiling,
     });
 }

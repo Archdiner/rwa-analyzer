@@ -49,8 +49,13 @@ export interface RawGovernanceReads {
     adminSlot: string | null;
     /** EIP-1967 beacon slot as a resolved address, or null. */
     beacon: string | null;
-    /** Whether the bytecode advertises standard proxy/upgrade selectors. */
-    hasProxySelectors: boolean;
+    /** Result of actually CALLING `implementation()` (address, or null if it
+     *  reverts/returns zero). A reliable proxy signal — a coincidental bytecode
+     *  match can't make a non-proxy return an implementation address. Replaces
+     *  the old (unreliable) selector-substring scan. */
+    implCall: string | null;
+    /** Result of calling `admin()` (transparent-proxy admin), or null. */
+    adminCall: string | null;
     /** `owner()` result (UUPS/Ownable upgrade authority), or null. */
     owner: string | null;
     /** Whether the resolved admin address has code (contract vs EOA). null = unknown. */
@@ -73,14 +78,18 @@ export interface RawGovernanceReads {
 export function classifyProxy(r: RawGovernanceReads): { pattern: ProxyPattern; isUpgradeable: boolean | null } {
     if (r.beacon) return { pattern: "beacon", isUpgradeable: true };
     if (r.impl) return { pattern: r.adminSlot ? "transparent" : "uups", isUpgradeable: true };
-    if (r.hasProxySelectors) return { pattern: "unknown", isUpgradeable: true }; // non-EIP-1967 proxy (e.g. USDC)
+    // A live implementation() response (non-EIP-1967 proxy, e.g. USDC) is a
+    // reliable positive signal — unlike a bytecode substring match, a non-proxy
+    // cannot return an implementation address.
+    if (r.implCall) return { pattern: "unknown", isUpgradeable: true };
     // No recognized marker: cannot confirm upgradeable OR immutable.
     return { pattern: "unknown", isUpgradeable: null };
 }
 
-/** Resolves the upgrade authority: the transparent admin slot, else `owner()`. */
+/** Resolves the upgrade authority: the transparent admin slot, then a live
+ *  admin() call, then owner(). */
 export function resolveAdmin(r: RawGovernanceReads): string | null {
-    return r.adminSlot ?? r.owner ?? null;
+    return r.adminSlot ?? r.adminCall ?? r.owner ?? null;
 }
 
 /** Classifies who controls the upgrade authority. */
@@ -94,6 +103,12 @@ export function classifyAdmin(r: RawGovernanceReads): {
     const adminAddress = resolveAdmin(r);
     if (!adminAddress) return { adminType: "unknown", adminAddress: null, threshold: null, ownerCount: null, delay: null };
     if (r.adminIsContract === false) return { adminType: "eoa", adminAddress, threshold: null, ownerCount: null, delay: null };
+    // A real TimelockController is not a Safe and vice versa. A contract that
+    // answers BOTH interfaces is a selector collision / ambiguous shape — do not
+    // mint a strong-control classification (and thus never a green) from it.
+    if (r.timelockDelaySeconds != null && r.safeThreshold != null) {
+        return { adminType: "contract_unknown", adminAddress, threshold: null, ownerCount: null, delay: null };
+    }
     if (r.timelockDelaySeconds != null) return { adminType: "timelock", adminAddress, threshold: null, ownerCount: null, delay: r.timelockDelaySeconds };
     if (r.safeThreshold != null) return { adminType: "multisig", adminAddress, threshold: r.safeThreshold, ownerCount: r.safeOwnerCount, delay: null };
     if (r.adminIsContract === true) return { adminType: "contract_unknown", adminAddress, threshold: null, ownerCount: null, delay: null };
