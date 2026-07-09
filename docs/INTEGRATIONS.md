@@ -1,12 +1,14 @@
 # Integrations
 
-The backing verdict is one server-side contract (`toAgentVerdict` in `lib/agent/verdict.ts`), exposed identically over HTTP, CLI, and MCP. There is **no boolean `safe` flag** — agents must read `tier`, `confidence`, `freshness`, and non-empty `caveats` together.
+One engine, three doors. Same verdict whether you hit HTTP, the CLI, or MCP.
+
+Under the hood it's always `toAgentVerdict` in `lib/agent/verdict.ts`. There is **no `safe: true` boolean** (we checked twice). Agents need to read `tier`, `confidence`, `freshness`, and whatever lands in `caveats`. Together. Like a responsible adult.
 
 ## Surfaces
 
 | Surface | Entry | Install |
 | --- | --- | --- |
-| **HTTP** | `GET /api/verify?asset={symbol\|chainId:address}` | Hosted at `https://rwa-analyzer.vercel.app` |
+| **HTTP** | `GET /api/verify?asset={symbol\|chainId:address}` | Live at `https://rwa-analyzer.vercel.app` |
 | **CLI** | `rwa-verify <asset>` | `npx -y -p @archdiner/rwa-verify rwa-verify OUSG` |
 | **MCP** | stdio tools (below) | `npx -y -p @archdiner/rwa-verify rwa-verify-mcp` |
 
@@ -14,24 +16,24 @@ The backing verdict is one server-side contract (`toAgentVerdict` in `lib/agent/
 
 | Tool | Input | Returns |
 | --- | --- | --- |
-| `check_asset_backing` | `asset`: ticker or `{chainId}:{address}` | Text summary + `structuredContent` (`AgentVerdict` JSON) |
-| `list_verified_assets` | (none) | Known assets with current backing tier/confidence |
+| `check_asset_backing` | `asset`: ticker or `{chainId}:{address}` | Plain-English summary + full `AgentVerdict` JSON in `structuredContent` |
+| `list_verified_assets` | (none) | Assets we know about, with current backing tier/confidence |
 
 ## Environment
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `RWA_API_BASE` | `https://rwa-analyzer.vercel.app` | Point CLI/MCP at production or `http://localhost:3000` |
+| `RWA_API_BASE` | `https://rwa-analyzer.vercel.app` | Point CLI/MCP at prod, or `http://localhost:3000` if you're running the app yourself |
 
-No API keys are required for CLI/MCP when using the hosted API.
+No API keys needed for CLI/MCP when you use the hosted API. Seriously. We meant it.
 
 ## MCP configuration by client
 
-### Cursor (project — clone this repo)
+### Cursor (you cloned this repo)
 
-`.cursor/mcp.json` is committed and uses `npm run mcp` from the workspace root.
+`.cursor/mcp.json` is already here. It runs `npm run mcp` from the project root. Open Cursor, enable the server, go bother an agent about OUSG.
 
-### Cursor / Claude Desktop / Windsurf (published package)
+### Cursor / Claude Desktop / Windsurf (published npm package)
 
 ```json
 {
@@ -47,11 +49,15 @@ No API keys are required for CLI/MCP when using the hosted API.
 }
 ```
 
-**File locations:** Cursor `~/.cursor/mcp.json` or `.cursor/mcp.json`; Claude Desktop `~/Library/Application Support/Claude/claude_desktop_config.json`; Windsurf `~/.codeium/windsurf/mcp_config.json`; Claude Code `.mcp.json` or `claude mcp add`.
+**Where to put it:**
+- Cursor: `~/.cursor/mcp.json` or `.cursor/mcp.json`
+- Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windsurf: `~/.codeium/windsurf/mcp_config.json`
+- Claude Code: `.mcp.json` or `claude mcp add`
 
 ### VS Code + GitHub Copilot
 
-VS Code uses `"servers"` (not `"mcpServers"`) and requires `"type": "stdio"`:
+VS Code is special. It wants `"servers"` instead of `"mcpServers"`, and each entry needs `"type": "stdio"`. Because of course it does.
 
 ```json
 {
@@ -68,22 +74,22 @@ VS Code uses `"servers"` (not `"mcpServers"`) and requires `"type": "stdio"`:
 }
 ```
 
-Save as `.vscode/mcp.json` in the project or via **MCP: Open User Configuration**.
+Drop that in `.vscode/mcp.json`, or open **MCP: Open User Configuration** and paste it there.
 
 ## CLI examples
 
 ```bash
-# Published package (no clone)
+# Published package (no clone, no shame)
 npx -y -p @archdiner/rwa-verify rwa-verify OUSG
 npx -y -p @archdiner/rwa-verify rwa-verify BENJI
 npx -y -p @archdiner/rwa-verify rwa-verify 1:0x7712c34205737192402172409a8f7ccef8aa2aec
 
-# From a cloned repo
+# From a cloned repo (we see you, contributor)
 npm run verify -- OUSG
 RWA_API_BASE=http://localhost:3000 npm run verify -- BENJI
 ```
 
-Exit codes do **not** encode backing tier. Read the printed verdict or JSON; do not branch on `0`/`1` alone.
+Exit codes do **not** tell you if backing is good. Read the verdict. Don't `if (exitCode === 0) { yoloDeposit() }`. Please.
 
 ## HTTP examples
 
@@ -92,7 +98,7 @@ curl -s "https://rwa-analyzer.vercel.app/api/verify?asset=OUSG" | jq .
 curl -s "https://rwa-analyzer.vercel.app/api/universe" | jq '.data.universe[].symbol'
 ```
 
-Response shape:
+Response shape (abbreviated):
 
 ```json
 {
@@ -116,6 +122,8 @@ Response shape:
 
 ## Agent guard (JavaScript)
 
+A minimal example you can steal:
+
 ```javascript
 const BASE = process.env.RWA_API_BASE ?? "https://rwa-analyzer.vercel.app";
 
@@ -126,7 +134,7 @@ export async function verifyBacking(asset) {
   return json.data;
 }
 
-/** Example policy: block only on explicit reconciliation failure. */
+/** Example policy: only hard-block on explicit reconciliation failure. */
 export function shouldBlockDeposit(verdict) {
   if (verdict.backing.tier === "does_not_reconcile") return { block: true, reason: verdict.backing.meaning };
   if (verdict.backing.caveats?.length) return { block: false, warn: verdict.backing.caveats };
@@ -134,27 +142,27 @@ export function shouldBlockDeposit(verdict) {
 }
 ```
 
-Always surface `meaning`, `trust_boundary`, and `caveats` to the user — never collapse to “safe” or “unsafe”.
+Show the user `meaning`, `trust_boundary`, and `caveats`. Don't summarize as "looks safe to me, boss."
 
 ## Local full stack
 
-To run ingestion + scoring locally (not required for MCP/CLI against hosted API):
+Only needed if you want to run ingestion and scoring yourself. MCP/CLI against the hosted API skip all of this.
 
 ```bash
-cp .env.example .env.local   # fill Supabase + optional RPC/OpenAI
+cp .env.example .env.local   # Supabase + optional RPC/OpenAI
 npm install && npm run dev   # http://localhost:3000
 RWA_API_BASE=http://localhost:3000 npm run verify -- BENJI
 ```
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) and [METHODOLOGY.md](./METHODOLOGY.md).
+More context: [ARCHITECTURE.md](./ARCHITECTURE.md), [METHODOLOGY.md](./METHODOLOGY.md).
 
 ## Publishing the npm package
 
-Maintainers:
+For maintainers (that's probably you if you're reading this section):
 
 ```bash
 npm run build:verify
 cd packages/rwa-verify && npm publish --access public
 ```
 
-Requires npm login and ownership of the `@archdiner` scope (or change the package name in `packages/rwa-verify/package.json` before first publish).
+You'll need `npm login` and the `@archdiner` scope. No scope? Rename the package in `packages/rwa-verify/package.json` before your first publish. Future you will thank present you.

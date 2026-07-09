@@ -1,16 +1,20 @@
 # RWA Reliability Analyzer
 
-An honest, machine-readable **backing-verification primitive** for tokenized real-world assets: give it an asset, it tells you whether the backing claim actually reconciles against an independent source — and, just as importantly, where it can't. Callable by an **agent (MCP)**, a **CLI**, or **HTTP**. The website is one client of it.
+An honest, machine-readable **backing-verification primitive** for tokenized real-world assets. Give it an asset; it tells you whether the backing claim actually reconciles against an independent source, and (just as importantly) where it can't. Call it from an **agent (MCP)**, a **CLI**, or **HTTP**. The website is just one client.
 
-The one thing it refuses to do is fake a green. Most tools hand back a checkmark; this hands back a structured, two-axis verdict whose caveat is impossible to drop (see **[Call it as a tool](#call-it-as-a-tool)**). That's the exact shape an autonomous agent needs before it parks stablecoins in an instrument it can't eyeball.
+The one thing it refuses to do is fake a green. Most tools hand back a checkmark; this hands back a structured verdict whose caveats are basically impossible to ignore (see **[Call it as a tool](#call-it-as-a-tool)**). That's the shape an autonomous agent needs before it parks stablecoins somewhere it can't eyeball.
 
-This rates **assets** on public facts and **never holds your money** — you deposit with the provider directly. It is not a rating agency and **not financial advice**.
+This rates **assets** on public facts and **never holds your money**. You deposit with the provider directly. Not a rating agency. Not financial advice. You knew that, but lawyers like it written down.
 
 ## Call it as a tool
 
-The core is a function — asset in, honest verdict out — exposed three ways over one server-side contract (`lib/agent/verdict.ts`, `GET /api/verify`). The verdict is deliberately **un-collapsible to a boolean**: there is no `safe: true`. Backing is two orthogonal axes you must read together — `tier` (`verified_backed | partially_verified | does_not_reconcile | unverifiable`) and `confidence` (`verified | auto | unverifiable`) — plus a `meaning` sentence, a `trust_boundary`, and `caveats` that are required non-empty unless the verdict is fully verified. `verified_backed` means the backing reconciled against a named independent source; it is **not** a safety guarantee, and `unverifiable` is **not** a judgment of danger — absence of a red flag is not a green light.
+The core is simple: asset in, honest verdict out. Same contract everywhere (`lib/agent/verdict.ts`, `GET /api/verify`).
 
-**MCP (the primary artifact).** Stdio server with `check_asset_backing` and `list_verified_assets`.
+The verdict is deliberately **not collapsible to a boolean**. There is no `safe: true`. Backing has two axes you read together: `tier` (`verified_backed | partially_verified | does_not_reconcile | unverifiable`) and `confidence` (`verified | auto | unverifiable`), plus a `meaning` sentence, a `trust_boundary`, and `caveats` that stay non-empty unless everything is fully verified.
+
+`verified_backed` means the backing reconciled against a named independent source. It is **not** a safety guarantee. `unverifiable` is **not** a judgment that the asset is dangerous. No red flag is not a green light. We say that a lot because people keep trying anyway.
+
+**MCP (the main event).** Stdio server with `check_asset_backing` and `list_verified_assets`.
 
 One-line install (no clone):
 
@@ -26,27 +30,27 @@ One-line install (no clone):
 }
 ```
 
-Cloned repo: `.cursor/mcp.json` is preconfigured (`npm run mcp`). See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) for Cursor, Claude Desktop, VS Code, and Windsurf.
+Cloned the repo? `.cursor/mcp.json` is already set up (`npm run mcp`). More configs: [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) for Cursor, Claude Desktop, VS Code, and Windsurf.
 
-**CLI.** `npx -y -p @archdiner/rwa-verify rwa-verify OUSG` — or `npm run verify -- ousg` from a clone. Points at the deployed API by default; set `RWA_API_BASE` for a local server. The tier is printed, never encoded in the exit code — you read the verdict, you don't branch on `0/1`.
+**CLI.** `npx -y -p @archdiner/rwa-verify rwa-verify OUSG`, or `npm run verify -- ousg` from a clone. Defaults to the deployed API; set `RWA_API_BASE` for local. The tier is printed, not encoded in the exit code. Read the verdict. Don't branch on `0/1`.
 
 **HTTP.** `GET /api/verify?asset=OUSG` returns the same `AgentVerdict` JSON.
 
-Scope is tight on purpose: this answers "is this asset's backing real?" — it is not an agent trust/reputation protocol.
+Scope is tight on purpose: "is this asset's backing real?" Not an agent trust/reputation protocol. One job.
 
-### The decision surface (one client, for humans)
+### The decision surface (for humans)
 
-The landing is a human client of the same engine. A profile (jurisdiction + amount) drives a pure, tested engine (`lib/decision.ts`) that does three things a static list can't:
+The landing page is a human client of the same engine. Pick jurisdiction + amount; `lib/decision.ts` does three things a static list can't:
 
-1. **Reachability** — closes what you can't legally touch (US-retail vs qualified-purchaser vs non-US), with the plain reason, instead of making you decode legal pages.
-2. **Safety-first ranking** — safest backing first, yield only breaking ties within a tier. A green 4.15% ranks above an unknown 6.5%, because yield is the compensation for risk.
-3. **The trust boundary on every row** — the one line naming where on-chain verification stops and institutional trust begins.
+1. **Reachability:** closes what you can't legally touch (US retail vs qualified purchaser vs non-US), with the plain reason, instead of making you decode legal pages.
+2. **Safety-first ranking:** safest backing first, yield only breaks ties within a tier. A green 4.15% ranks above an unknown 6.5%, because yield is the compensation for risk.
+3. **Trust boundary on every row:** the one line that says where on-chain verification stops and institutional trust begins.
 
-Public read at `GET /api/universe` (optionally `?jurisdiction=&amount=`).
+Public read: `GET /api/universe` (optionally `?jurisdiction=&amount=`).
 
 ## How it works
 
-Three modules behind two frozen contracts. Any module can be rewritten in isolation as long as the two shapes hold.
+Three modules, two frozen contracts. Rewrite any module you want as long as the shapes hold.
 
 ```
  SOURCES              MODULE 1 (Ingestion)      Contract A       MODULE 2 (Computation)     Contract B      MODULE 3 (App)
@@ -60,33 +64,33 @@ Three modules behind two frozen contracts. Any module can be rewritten in isolat
 Two invariants enforced in code:
 
 1. **Confidence is per field, never per asset.** A `verified` on-chain supply can sit next to an `auto` (LLM-extracted) wrapper type. They are never collapsed.
-2. **A verdict's confidence is capped by its inputs' confidence.** If the wrapper type was auto-extracted, the structure verdict is stamped "Based on auto-extracted data." Computation can never emit a confident verdict from unconfident inputs.
+2. **A verdict's confidence is capped by its inputs' confidence.** If the wrapper type was auto-extracted, the structure verdict is stamped "Based on auto-extracted data." Computation can't emit a confident verdict from unconfident inputs.
 
 The LLM lives only in ingestion (prose → structured fields). Scoring is deterministic rules, so every output is explainable and improvable one rule at a time.
 
 ### The edge: the evidence hierarchy (two axes)
 
-Backing reads a `backing_evidence[]` array (Contract A), not a single reserves number. Each item carries two independent axes:
+Backing reads a `backing_evidence[]` array (Contract A), not a single reserves number. Each item has two independent axes:
 
-- **Independence** (who wrote the evidence) sets the **ceiling color**. A regulator filing (EDGAR) or an on-chain read of an independently-proven reserve can reach green; an issuer self-report — however cleanly parsed — cannot.
-- **Extraction** (how we read the number) sets the **confidence label**. An on-chain read is `verified`; a parsed PDF figure is `auto` ("check the citation").
+- **Independence** (who wrote the evidence) sets the **ceiling color**. A regulator filing (EDGAR) or an on-chain read of an independently proven reserve can reach green; an issuer self-report, however cleanly parsed, cannot.
+- **Extraction** (how we read the number) sets the **confidence label**. On-chain read = `verified`; parsed PDF figure = `auto` ("check the citation").
 
-Two correctness rules make this honest:
+Two rules keep this honest:
 
-- **Anti-laundering.** On-chain reconstruction that holds another token inherits *that token's* backing independence as its ceiling (recursive, cycle-safe). Reading that a fund holds an amber token proves composition, not backing — so it stays amber, never green.
-- **Slice-funds.** `tokenization_mode` distinguishes a fully-tokenized fund (reserves reconcile against supply × NAV) from a tranche of a larger registered fund (green comes from a regulator filing + NAV integrity; total-pool reconciliation is category-inapplicable).
+- **Anti-laundering.** On-chain reconstruction that holds another token inherits *that token's* backing independence as its ceiling (recursive, cycle-safe). Reading that a fund holds an amber token proves composition, not backing. So it stays amber, never green.
+- **Slice-funds.** `tokenization_mode` distinguishes a fully tokenized fund (reserves reconcile against supply × NAV) from a tranche of a larger registered fund (green comes from regulator filing + NAV integrity; total-pool reconciliation doesn't apply).
 
-**Principle:** green rests only on guards the model cannot argue with — the supply × NAV reconciliation (arithmetic) and the verbatim-substring citation (string equality). `parse_confidence` is a **floor** (a low score can block a green) but **never a gate** (a high score can never earn one).
+**Principle:** green rests only on guards the model can't argue with: supply × NAV reconciliation (arithmetic) and verbatim-substring citation (string equality). `parse_confidence` is a **floor** (low score can block green) but **never a gate** (high score can't earn one).
 
 ### Citation validation (integrity spine)
 
-Every LLM-extracted field must carry a `text_span`. That span is validated as a **verbatim substring** of the fetched document; if it fails, the field drops to `unverifiable`. A required-but-unchecked citation is worthless — so we check it.
+Every LLM-extracted field must carry a `text_span`. That span is validated as a **verbatim substring** of the fetched document; if it fails, the field drops to `unverifiable`. Unchecked citations are worthless, so we check them.
 
 ### Coverage tiers
 
-- **Verified** — seeded flagship assets, qualitative fields human-checked.
-- **Auto** — resolved on demand: on-chain + LLM extraction. Labeled "verify yourself"; sources on every field.
-- **Unverifiable** — on-chain resolves but no qualitative sources found. On-chain data only, with honest `unknown`s.
+- **Verified:** seeded flagship assets, qualitative fields human-checked.
+- **Auto:** resolved on demand via on-chain + LLM extraction. Labeled "verify yourself"; sources on every field.
+- **Unverifiable:** on-chain resolves but no qualitative sources found. On-chain data only, with honest `unknown`s.
 
 ## Dimensions
 
@@ -121,13 +125,13 @@ npm run seed                 # ingests + stores the flagship assets
 |---|---|---|
 | `ETHEREUM_RPC_URL` / `BASE_RPC_URL` / `AVALANCHE_RPC_URL` | on-chain reads | that chain is skipped |
 | `OPENAI_API_KEY` | qualitative extraction | qualitative fields → unverifiable |
-| `RWA_XYZ_API_KEY` | rwa.xyz v4 (**Enterprise/paid** — no free API) | reference fields skipped |
+| `RWA_XYZ_API_KEY` | rwa.xyz v4 (**Enterprise/paid**, no free API) | reference fields skipped |
 | `WEB_SEARCH_API_KEY` | issuer-doc discovery on cold lookups (Serper format) | discovery uses known URLs only |
 | `SEC_USER_AGENT` | courtesy UA for EDGAR (free, no key) | a sensible default is used |
 | `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | the asset store | no caching (on-demand each load) |
 | `CRON_SECRET` | guards the daily refresh cron | cron open (set it in prod) |
 
-> Note: rwa.xyz has no free programmatic API; the $0 plan is dashboard-only. The tool is designed to work without it — qualitative data comes from the seed + LLM extraction of issuer disclosures.
+> Note: rwa.xyz has no free programmatic API; the $0 plan is dashboard-only. The tool works without it. Qualitative data comes from the seed + LLM extraction of issuer disclosures.
 
 ## Commands
 
@@ -150,13 +154,13 @@ Smart-contract/oracle depth, secondary-liquidity depth, duration modeling, human
 
 ## The honest headline
 
-Verified-**green** backing on tokenized RWAs is genuinely hard to produce, and this tool produces it where it can and refuses to fake it everywhere else. The flagship money funds ship **no** Chainlink Proof-of-Reserve feed, so the only paths to a real green are a **regulator filing** (EDGAR, for registered funds) or **on-chain reconstruction** (reading reserves directly) — and reconstruction only works when the reserve wallet is **published and attributable**.
+Verified-**green** backing on tokenized RWAs is genuinely hard. This tool produces it where it can and refuses to fake it everywhere else. The flagship money funds ship **no** Chainlink Proof-of-Reserve feed, so the only paths to a real green are a **regulator filing** (EDGAR, for registered funds) or **on-chain reconstruction** (reading reserves directly). Reconstruction only works when the reserve wallet is **published and attributable**.
 
 The two flagship cards, side by side, are the whole thesis in one screen:
 
-**BENJI — genuine green, through regulation** (live EDGAR read, filing dated 2026-06-30). Franklin's on-chain token is a share of FOBXX, a registered '40-Act Government money-market fund (SEC series S000067043). Its monthly **N-MFP3** filing reports whole-fund net assets of **$753.2M**, a market-based (shadow) NAV pegged at **$1.0000** across every June observation, holdings **100% U.S. Treasuries / agency debt / Treasury repo**, and a 53-day WAM — regulator-grade, independent, machine-readable. The on-chain Ethereum slice is only **$47.8M (6.35% of the fund)**, so a naive `supply × NAV` check would fire a **~1,475% false red**. `tokenization_mode: tranche_of_registered_fund` skips that category-inapplicable reconciliation and confers green via **regulated structure + NAV integrity** instead. This is the one flagship that goes genuinely green — and it does so through regulation, not a reconstructed balance.
+**BENJI: genuine green, through regulation** (live EDGAR read, filing dated 2026-06-30). Franklin's on-chain token is a share of FOBXX, a registered '40-Act Government money-market fund (SEC series S000067043). Its monthly **N-MFP3** filing reports whole-fund net assets of **$753.2M**, a market-based (shadow) NAV pegged at **$1.0000** across every June observation, holdings **100% U.S. Treasuries / agency debt / Treasury repo**, and a 53-day WAM. Regulator-grade, independent, machine-readable. The on-chain Ethereum slice is only **$47.8M (6.35% of the fund)**, so a naive `supply × NAV` check would fire a **~1,475% false red**. `tokenization_mode: tranche_of_registered_fund` skips that category-inapplicable reconciliation and confers green via **regulated structure + NAV integrity** instead. This is the one flagship that goes genuinely green, and it does so through regulation, not a reconstructed balance.
 
-**OUSG — honest unknown, because on-chain doesn't mean verifiable here** (verified on-chain 2026-07-07). The "read OUSG's BUIDL on-chain" story does **not** hold: every Ondo-published Ethereum address holds **0 BUIDL**; the reserves sit in segregated accounts at third-party custodians (Clear Street / Coinbase Custody) for the Ondo I LP SPV — addresses Ondo does not attribute publicly. On-chain reconstruction resolves **0%** of OUSG's backing to an attributable wallet, and its real proof is Ankura Trust's **off-chain** attestation. The tool renders `unknown` (until that attestation is parsed) rather than inventing a green.
+**OUSG: honest unknown, because on-chain doesn't mean verifiable here** (verified on-chain 2026-07-07). The "read OUSG's BUIDL on-chain" story does **not** hold: every Ondo-published Ethereum address holds **0 BUIDL**; the reserves sit in segregated accounts at third-party custodians (Clear Street / Coinbase Custody) for the Ondo I LP SPV. Ondo does not attribute those addresses publicly. On-chain reconstruction resolves **0%** of OUSG's backing to an attributable wallet; its real proof is Ankura Trust's **off-chain** attestation. The tool renders `unknown` (until that attestation is parsed) rather than inventing a green.
 
 That pair is the point: here is what real verification looks like, and here is how rarely this asset class can actually offer it. The narrowness is the product.
 

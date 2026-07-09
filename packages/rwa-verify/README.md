@@ -1,17 +1,19 @@
 # @archdiner/rwa-verify
 
-MCP server and CLI for the [RWA Reliability Analyzer](https://github.com/Archdiner/rwa-analyzer). Thin HTTP clients over `GET /api/verify` — no local secrets required when using the hosted API.
+MCP server and CLI for the [RWA Reliability Analyzer](https://github.com/Archdiner/rwa-analyzer).
 
-## Install (MCP)
+Thin HTTP clients over `GET /api/verify`. No local secrets when you use the hosted API. Clone the full repo only if you're into that kind of thing.
 
-Add to your MCP client config:
+## MCP install
+
+Paste into your MCP client config:
 
 ```json
 {
   "mcpServers": {
     "rwa-backing-verifier": {
       "command": "npx",
-      "args": ["-y", "@archdiner/rwa-verify@latest", "mcp"]
+      "args": ["-y", "-p", "@archdiner/rwa-verify@latest", "rwa-verify-mcp"]
     }
   }
 }
@@ -19,19 +21,19 @@ Add to your MCP client config:
 
 **Tools:** `check_asset_backing`, `list_verified_assets`
 
-## Install (CLI)
+## CLI
 
 ```bash
-npx @archdiner/rwa-verify@latest OUSG
-npx @archdiner/rwa-verify@latest BENJI
+npx -y -p @archdiner/rwa-verify rwa-verify OUSG
+npx -y -p @archdiner/rwa-verify rwa-verify BENJI
 ```
 
 ## Environment
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `RWA_API_BASE` | `https://rwa-analyzer.vercel.app` | API base URL (use `http://localhost:3000` for local dev) |
+| `RWA_API_BASE` | `https://rwa-analyzer.vercel.app` | API base URL (`http://localhost:3000` for local dev) |
 
 ## Full docs
 
-See [docs/INTEGRATIONS.md](https://github.com/Archdiner/rwa-analyzer/blob/main/docs/INTEGRATIONS.md) in the main repo.
+[docs/INTEGRATIONS.md](https://github.com/Archdiner/rwa-analyzer/blob/main/docs/INTEGRATIONS.md) in the main repo. Cursor, Claude, VS Code, Windsurf configs live there.
