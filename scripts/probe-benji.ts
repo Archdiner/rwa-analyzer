@@ -73,7 +73,7 @@ async function main() {
         "Regulated '40-Act Government MMF, regulator-filed holdings, market NAV at $1.0000,\n" +
             "100% government securities. Tranche mode confers GREEN via regulated structure +\n" +
             "NAV integrity, NOT total-pool reconciliation. This is the one flagship that goes\n" +
-            "genuinely green — through regulation, not a reconstructed balance.",
+            "genuinely green - through regulation, not a reconstructed balance.",
     );
 }
 

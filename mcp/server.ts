@@ -1,17 +1,9 @@
 #!/usr/bin/env tsx
 // ---------------------------------------------------------------------------
-// RWA backing-verification MCP server — the primary artifact
+// RWA backing-verification MCP server
 // ---------------------------------------------------------------------------
-// Exposes the honest backing-verifiability engine as tools an agent can call
-// BEFORE it commits money to a tokenized real-world asset. It is a thin client
-// of /api/verify and /api/universe (set RWA_API_BASE; defaults to the deployed
-// API), so it needs no secrets and always speaks the same contract as the site.
-//
-// Scope is deliberately tight: "is this asset's backing real?" — one capability,
-// not an agent trust/reputation protocol. The response is engineered so the
-// caveat is load-bearing: no boolean, two axes (tier + confidence), and the tool
-// TEXT leads with `meaning`, `trust_boundary`, and `caveats` so an agent cannot
-// collapse a nuanced verdict into safe/unsafe.
+// Thin stdio client of GET /api/verify and GET /api/universe.
+// Set RWA_API_BASE (defaults to the deployed API). No local secrets required.
 // ---------------------------------------------------------------------------
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -32,7 +24,7 @@ async function apiGet<T>(path: string): Promise<T> {
 function renderVerdict(v: AgentVerdict): string {
     const b = v.backing;
     const lines = [
-        `${v.asset.symbol} (${v.asset.name}) — backing verdict`,
+        `${v.asset.symbol} (${v.asset.name}) - backing verdict`,
         ``,
         `tier: ${b.tier}   |   confidence: ${b.confidence}`,
         `MEANING: ${b.meaning}`,
@@ -62,18 +54,13 @@ server.registerTool(
     {
         title: "Check RWA backing verifiability",
         description:
-            "Returns an HONEST, machine-readable backing-verifiability read for a tokenized real-world " +
-            "asset (money-market funds, tokenized treasuries, yield-bearing stablecoins). Call this before " +
-            "committing funds to such an asset. Input is a ticker (e.g. OUSG, BENJI, sDAI) or a canonical " +
-            "'{chainId}:{address}'.\n\n" +
-            "The result has TWO axes you must read together: `tier` (verified_backed | partially_verified | " +
-            "does_not_reconcile | unverifiable — did the backing claim reconcile against an independent source) " +
-            "and `confidence` (verified | auto | unverifiable — how the figure was obtained). There is NO " +
-            "safe/unsafe boolean, by design. `verified_backed` means the backing reconciled against a named " +
-            "independent source; it is NOT a safety guarantee and verifies nothing beyond the stated " +
-            "`trust_boundary`. `unverifiable` means evidence to confirm or deny backing does not exist — it is " +
-            "NOT a judgment of safety, and absence of a red flag is not a green light. ALWAYS surface `meaning`, " +
-            "`trust_boundary`, and `caveats` to the user; never reduce this verdict to a boolean.",
+            "Returns a machine-readable backing-verifiability read for a tokenized real-world " +
+            "asset (money-market funds, tokenized treasuries, yield-bearing stablecoins). " +
+            "Input is a ticker (e.g. OUSG, BENJI, sDAI) or '{chainId}:{address}'.\n\n" +
+            "The result has two axes: `tier` (verified_backed | partially_verified | " +
+            "does_not_reconcile | unverifiable) and `confidence` (verified | auto | unverifiable). " +
+            "There is no safe/unsafe boolean. Surface `meaning`, `trust_boundary`, and `caveats` " +
+            "to the user; do not reduce the verdict to a boolean.",
         inputSchema: {
             asset: z
                 .string()
@@ -120,7 +107,7 @@ server.registerTool(
             const text = universe
                 .map(
                     (a) =>
-                        `${a.symbol} — ${a.name}: backing ${a.backing_flag}/${a.backing_confidence}` +
+                        `${a.symbol} - ${a.name}: backing ${a.backing_flag}/${a.backing_confidence}` +
                         (a.jurisdiction ? ` (${a.jurisdiction})` : ""),
                 )
                 .join("\n");

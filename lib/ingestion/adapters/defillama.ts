@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
-// DeFiLlama adapter (free REST) — live pool APYs
+// DeFiLlama adapter (free REST) - live pool APYs
 // ---------------------------------------------------------------------------
-// A yield is `auto` (verify yourself) with a timestamp, never verified — and it
+// A yield is `auto` (verify yourself) with a timestamp, never verified - and it
 // is held to the same integrity bar as everything else: a sanity floor/ceiling
 // so a glitched feed can't print "1,400%" straight-faced, and its provenance
 // records WHICH kind of number it is (a live DeFi pool APY), because the source
@@ -9,7 +9,7 @@
 //
 // Two ways to match: a curated pool id (exact, for seeded DeFi assets) or, for
 // the long tail, a pool whose underlying token equals the asset on the same
-// chain. Stated fund rates (MMFs) don't live here — they're carried on the seed.
+// chain. Stated fund rates (MMFs) don't live here - they're carried on the seed.
 // ---------------------------------------------------------------------------
 
 import { field, type AdapterResult, EMPTY } from "@/lib/ingestion/adapters/base";

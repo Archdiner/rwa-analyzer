@@ -16,7 +16,7 @@ export interface IssuerDoc {
     text: string;
 }
 
-const MAX_BYTES = 8 * 1024 * 1024; // 8 MB cap — prospectuses are large but bounded
+const MAX_BYTES = 8 * 1024 * 1024; // 8 MB cap - prospectuses are large but bounded
 const MAX_TEXT_CHARS = 120_000; // keep the extraction prompt bounded
 
 /** Strips HTML to rough text. Good enough to cite against; not a renderer. */

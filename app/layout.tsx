@@ -1,36 +1,50 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
+import SiteHeader from "@/components/SiteHeader";
+import { GITHUB_URL } from "@/lib/site";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const fraunces = Fraunces({
+    variable: "--font-fraunces",
+    subsets: ["latin"],
+    weight: ["400", "500"],
+    style: ["normal", "italic"],
+});
 
 export const metadata: Metadata = {
     title: {
-        default: "RWA Reliability Analyzer",
-        template: "%s | RWA Reliability Analyzer",
+        default: "RWA Reliability - backing verification for agents",
+        template: "%s | RWA Reliability",
     },
     description:
-        "A transparent, per-dimension reliability read on tokenized real-world assets. Every claim shows its source and its confidence. We rate assets, not decisions.",
+        "Structured backing verdicts for tokenized assets - MCP, CLI, and HTTP API. Check where proof stops before your agent or wallet routes a deposit.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     return (
-        <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-            <body className="min-h-full flex flex-col bg-bg text-text">
-                <header className="border-b border-border">
-                    <div className="mx-auto max-w-4xl px-5 py-4 flex items-center justify-between">
-                        <Link href="/" className="font-mono text-sm tracking-tight text-text">
-                            RWA<span className="text-verified">/</span>Reliability
-                        </Link>
-                        <span className="text-xs text-text-faint">Research on public facts · not financial advice</span>
-                    </div>
-                </header>
-                <main className="flex-1">{children}</main>
-                <footer className="border-t border-border">
-                    <div className="mx-auto max-w-4xl px-5 py-4 text-xs text-text-faint">
-                        Information, not financial advice. We rate assets, not decisions.
+        <html
+            lang="en"
+            className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+        >
+            <body className="relative flex min-h-full flex-col bg-bg text-text">
+                <SiteHeader />
+                <main className="flex-1 relative z-10">{children}</main>
+                <footer className="border-t border-border-strong bg-[#050505]/80 backdrop-blur-md relative z-10">
+                    <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-8 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="max-w-md text-xs leading-relaxed text-text-faint">
+                            Information on public facts, not financial advice. I rate assets, not decisions, and never
+                            hold your money.
+                        </p>
+                        <a
+                            href={GITHUB_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="eyebrow transition-colors hover:text-primary"
+                        >
+                            Open source
+                        </a>
                     </div>
                 </footer>
             </body>

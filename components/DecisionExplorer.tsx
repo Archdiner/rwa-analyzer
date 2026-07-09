@@ -11,32 +11,46 @@ import {
 } from "@/lib/decision";
 import { ReachableRow, ClosedRow } from "@/components/OptionRow";
 
-function Select<T extends string>({
+function Segmented<T extends string>({
     label,
+    hint,
     value,
     onChange,
     options,
 }: {
     label: string;
+    hint: string;
     value: T;
     onChange: (v: T) => void;
     options: { id: T; label: string }[];
 }) {
     return (
-        <label className="flex-1">
-            <span className="mb-1.5 block text-xs uppercase tracking-wide text-text-faint">{label}</span>
-            <select
-                value={value}
-                onChange={(e) => onChange(e.target.value as T)}
-                className="w-full rounded-xl border border-border bg-[color:var(--bg-elev)] px-3 py-3 text-sm text-text focus:border-[color:var(--verified)] focus:outline-none"
-            >
-                {options.map((o) => (
-                    <option key={o.id} value={o.id}>
-                        {o.label}
-                    </option>
-                ))}
-            </select>
-        </label>
+        <div>
+            <div className="flex items-baseline justify-between">
+                <span className="text-sm font-medium text-text">{label}</span>
+                <span className="text-[11px] text-text-faint">{hint}</span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+                {options.map((o) => {
+                    const active = value === o.id;
+                    return (
+                        <button
+                            key={o.id}
+                            type="button"
+                            onClick={() => onChange(o.id)}
+                            aria-pressed={active}
+                            className={`rounded-full px-3.5 py-2 text-[13px] transition-colors ${
+                                active
+                                    ? "border border-primary/60 bg-primary/10 text-text"
+                                    : "border border-border text-text-muted hover:border-border-strong hover:text-text"
+                            }`}
+                        >
+                            {o.label}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
     );
 }
 
@@ -50,54 +64,70 @@ export default function DecisionExplorer({ universe }: { universe: AssetSummary[
     );
 
     return (
-        <div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-                <Select
-                    label="Where are you"
-                    value={jurisdiction}
-                    onChange={setJurisdiction}
-                    options={USER_JURISDICTIONS}
-                />
-                <Select
-                    label="How much"
-                    value={amount}
-                    onChange={setAmount}
-                    options={AMOUNT_BANDS.map((b) => ({ id: b.id, label: b.label }))}
-                />
+        <div className="grid gap-8 lg:grid-cols-[320px_1fr] lg:gap-10">
+            {/* Controls */}
+            <div className="lg:sticky lg:top-24 lg:self-start">
+                <div className="panel space-y-7 p-6">
+                    <Segmented
+                        label="Where are you"
+                        hint="jurisdiction"
+                        value={jurisdiction}
+                        onChange={setJurisdiction}
+                        options={USER_JURISDICTIONS}
+                    />
+                    <div className="h-px bg-border" />
+                    <Segmented
+                        label="How much"
+                        hint="amount"
+                        value={amount}
+                        onChange={setAmount}
+                        options={AMOUNT_BANDS.map((b) => ({ id: b.id, label: b.label }))}
+                    />
+                </div>
+                <p className="mt-4 px-1 text-[12px] leading-relaxed text-text-faint">
+                    Ranked safety first: backing you can verify comes before higher yield you cannot.
+                </p>
             </div>
 
-            <div className="mt-8">
-                <div className="flex items-baseline justify-between">
-                    <h2 className="text-sm font-medium text-text">
-                        {reachable.length} option{reachable.length === 1 ? "" : "s"} you can actually reach
-                    </h2>
-                    <span className="text-[11px] text-text-faint">ranked by safety, then yield</span>
+            {/* Results */}
+            <div>
+                <div className="flex items-baseline justify-between px-1">
+                    <h3 className="text-sm font-medium text-text">
+                        What you can reach{" "}
+                        <span className="text-text-faint">({reachable.length})</span>
+                    </h3>
                 </div>
 
                 {reachable.length === 0 ? (
-                    <p className="mt-4 rounded-xl border border-border bg-[color:var(--bg-elev)] p-4 text-sm text-text-muted">
-                        Nothing in the current set is reachable from that profile. That&apos;s an honest result, not a
-                        bug — the tappable menu for some profiles is genuinely thin. Try a different location or amount.
-                    </p>
+                    <div className="panel mt-4 p-8 text-center">
+                        <p className="text-sm text-text-muted">
+                            Nothing here matches that profile. Try a different amount or location.
+                        </p>
+                    </div>
                 ) : (
-                    <ul className="mt-4 space-y-3">
+                    <div className="panel mt-4 divide-y divide-border overflow-hidden">
                         {reachable.map((item) => (
                             <ReachableRow key={item.asset.asset_id} item={item} />
                         ))}
-                    </ul>
+                    </div>
+                )}
+
+                {closed.length > 0 && (
+                    <div className="mt-10">
+                        <div className="flex items-baseline justify-between px-1">
+                            <h3 className="text-sm font-medium text-text-muted">
+                                Out of reach here{" "}
+                                <span className="text-text-faint">({closed.length})</span>
+                            </h3>
+                        </div>
+                        <div className="panel mt-4 divide-y divide-border overflow-hidden opacity-90">
+                            {closed.map((item) => (
+                                <ClosedRow key={item.asset.asset_id} item={item} />
+                            ))}
+                        </div>
+                    </div>
                 )}
             </div>
-
-            {closed.length > 0 && (
-                <div className="mt-8">
-                    <h2 className="text-sm font-medium text-text-faint">Closed to you</h2>
-                    <ul className="mt-3 space-y-2">
-                        {closed.map((item) => (
-                            <ClosedRow key={item.asset.asset_id} item={item} />
-                        ))}
-                    </ul>
-                </div>
-            )}
         </div>
     );
 }

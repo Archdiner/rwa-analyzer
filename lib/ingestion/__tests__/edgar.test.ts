@@ -16,7 +16,7 @@ import { f, rec } from "@/lib/computation/__tests__/helpers";
 
 const XML = readFileSync(join(__dirname, "fixtures/benji-nmfp3.xml"), "utf8");
 
-describe("parseNmfp — real BENJI/FOBXX N-MFP3 filing", () => {
+describe("parseNmfp - real BENJI/FOBXX N-MFP3 filing", () => {
     const data = parseNmfp(XML)!;
 
     it("parses the correct fund series", () => {
@@ -66,7 +66,7 @@ describe("liquidity-fee extraction (redemption_history signal)", () => {
 describe("buildRegulatorEvidence", () => {
     const ev = buildRegulatorEvidence(parseNmfp(XML)!, "SEC EDGAR N-MFP (S000067043)");
 
-    it("is regulator-grade, structured, verified — no parse_confidence or citation", () => {
+    it("is regulator-grade, structured, verified - no parse_confidence or citation", () => {
         expect(ev.source_type).toBe("regulator_filing");
         expect(ev.independence).toBe(5);
         expect(ev.extraction).toBe("structured");

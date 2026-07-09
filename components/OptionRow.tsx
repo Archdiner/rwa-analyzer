@@ -1,126 +1,99 @@
 import Link from "next/link";
-import { ExternalLink, Lock } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import type { Flag } from "@/lib/contracts";
 import type { AssetSummary, ReachableAsset, ClosedAsset } from "@/lib/decision";
-import { REDEMPTION_LABELS, safetyHeadline, yieldKindLabel, asOfShort } from "@/lib/display";
-import FlagChip from "@/components/FlagChip";
+import { REDEMPTION_LABELS, asOfShort, yieldKindLabel } from "@/lib/display";
 
-const FLAG_BORDER: Record<Flag, string> = {
-    green: "var(--green)",
-    amber: "var(--amber)",
-    red: "var(--red)",
-    unknown: "var(--unknown)",
+/* Verdict word carries the only color, and only in a restrained shade. No dots,
+   no spines, no pills - a quiet ledger that lets the type do the work. */
+const VERDICT: Record<Flag, { label: string; className: string }> = {
+    green: { label: "Backing verified", className: "text-green" },
+    amber: { label: "Partly verified", className: "text-amber" },
+    red: { label: "Does not reconcile", className: "text-red" },
+    unknown: { label: "Not yet verifiable", className: "text-text-muted" },
 };
 
 function Yield({ asset }: { asset: AssetSummary }) {
     const stamp = asOfShort(asset.yield_as_of);
     return (
-        <div className="text-right shrink-0">
-            <div className="font-mono text-lg text-text">
-                {asset.yield_apy != null ? `${asset.yield_apy.toFixed(2)}%` : "—"}
+        <div className="text-right">
+            <div className="font-mono text-lg tracking-tight text-text tabular-nums">
+                {asset.yield_apy != null ? `${asset.yield_apy.toFixed(2)}%` : "-"}
             </div>
-            <div className="text-[10px] uppercase tracking-wide text-text-faint">
+            <div className="mt-1 text-[11px] text-text-faint">
                 {yieldKindLabel(asset.yield_kind)}
+                {stamp ? ` · ${stamp}` : ""}
             </div>
-            {asset.yield_apy != null && stamp && (
-                <div className="text-[10px] text-text-faint">as of {stamp}</div>
-            )}
         </div>
     );
 }
 
-/** A reachable option. Safety leads (colored edge + flag), yield is weighed against it. */
+/** A reachable option: a quiet, editorial ledger row. */
 export function ReachableRow({ item }: { item: ReachableAsset }) {
     const { asset, caveats } = item;
+    const verdict = VERDICT[asset.backing_flag];
+
     return (
-        <li
-            className="rounded-xl border border-border bg-[color:var(--bg-elev)] p-4"
-            style={{ borderLeftWidth: 3, borderLeftColor: FLAG_BORDER[asset.backing_flag] }}
+        <Link
+            href={`/a/${encodeURIComponent(asset.asset_id)}`}
+            className="group flex items-start justify-between gap-6 px-6 py-5 transition-colors hover:bg-white/[0.02]"
         >
-            <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                    <div className="flex items-center gap-2.5">
-                        <FlagChip flag={asset.backing_flag} />
-                        <span className="font-mono text-sm text-text">{asset.symbol}</span>
-                        <span className="truncate text-xs text-text-faint">{asset.name}</span>
+            <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-3">
+                    <span className="font-mono text-sm font-semibold text-text">{asset.symbol}</span>
+                    <span className="truncate text-sm text-text-muted">{asset.name}</span>
+                </div>
+
+                <div className={`mt-1.5 text-[13px] ${verdict.className}`}>{verdict.label}</div>
+
+                {asset.trust_boundary && (
+                    <p className="mt-2.5 max-w-xl text-[13px] leading-relaxed text-text-faint">
+                        {asset.trust_boundary}
+                    </p>
+                )}
+
+                {caveats.length > 0 && (
+                    <div className="mt-3 space-y-1 border-l border-border pl-3">
+                        {caveats.map((c) => (
+                            <p key={c} className="text-[12px] leading-relaxed text-text-faint">
+                                {c}
+                            </p>
+                        ))}
                     </div>
-                    <p className="mt-2 text-sm text-text-muted">{safetyHeadline(asset.backing_flag)}.</p>
-                </div>
-                <Yield asset={asset} />
+                )}
             </div>
 
-            {asset.trust_boundary && (
-                <div className="mt-2.5 flex items-start gap-1.5 border-l-2 border-[color:var(--gate-bg)] pl-2.5">
-                    <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-text-faint">
-                        Trust boundary
-                    </span>
-                    <p className="text-[11px] leading-relaxed text-text-muted">{asset.trust_boundary}</p>
+            <div className="flex shrink-0 items-start gap-5">
+                <div className="text-right">
+                    <Yield asset={asset} />
+                    <div className="mt-2 text-[11px] text-text-faint">
+                        {asset.redemption_speed ? REDEMPTION_LABELS[asset.redemption_speed] : "Exit speed unknown"}
+                    </div>
                 </div>
-            )}
-
-            {caveats.length > 0 && (
-                <ul className="mt-2 space-y-0.5">
-                    {caveats.map((c) => (
-                        <li key={c} className="text-[11px] text-amber">
-                            {c}
-                        </li>
-                    ))}
-                </ul>
-            )}
-
-            <div className="mt-3 flex items-center justify-between text-xs">
-                <span className="text-text-faint">
-                    {asset.redemption_speed ? REDEMPTION_LABELS[asset.redemption_speed] : "Exit speed unknown"}
-                </span>
-                <div className="flex items-center gap-4">
-                    <Link
-                        href={`/a/${encodeURIComponent(asset.asset_id)}`}
-                        className="text-verified hover:underline"
-                    >
-                        Full read →
-                    </Link>
-                    {asset.provider_url && (
-                        <a
-                            href={asset.provider_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-text-muted hover:text-text"
-                        >
-                            Deposit at provider <ExternalLink className="h-3 w-3" />
-                        </a>
-                    )}
-                </div>
+                <ArrowUpRight className="mt-1 h-4 w-4 text-text-faint transition-colors group-hover:text-primary" />
             </div>
-        </li>
+        </Link>
     );
 }
 
-/** An option out of reach — greyed, with the single plain reason why. */
+/** An option out of reach: one quiet line with the plain reason. */
 export function ClosedRow({ item }: { item: ClosedAsset }) {
     const { asset, reason } = item;
     return (
-        <li className="rounded-xl border border-border bg-[color:var(--bg-elev-2)] px-4 py-3 opacity-70">
-            <div className="flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                        <Lock className="h-3.5 w-3.5 text-text-faint shrink-0" />
-                        <span className="font-mono text-sm text-text-muted">{asset.symbol}</span>
-                        <span className="truncate text-xs text-text-faint">{asset.name}</span>
-                    </div>
-                    <p className="mt-1 text-xs text-text-faint">{reason}</p>
-                </div>
-                <div className="text-right shrink-0">
-                    <div className="font-mono text-sm text-text-faint">
-                        {asset.yield_apy != null ? `${asset.yield_apy.toFixed(2)}%` : "—"}
-                    </div>
-                    <Link
-                        href={`/a/${encodeURIComponent(asset.asset_id)}`}
-                        className="text-[11px] text-text-faint hover:text-text hover:underline"
-                    >
-                        why →
-                    </Link>
-                </div>
+        <Link
+            href={`/a/${encodeURIComponent(asset.asset_id)}`}
+            className="group flex items-center justify-between gap-4 px-6 py-4 transition-colors hover:bg-white/[0.02]"
+        >
+            <div className="flex min-w-0 items-baseline gap-3">
+                <span className="font-mono text-sm text-text-muted">{asset.symbol}</span>
+                <span className="truncate text-[13px] text-text-faint">{reason}</span>
             </div>
-        </li>
+            <div className="flex shrink-0 items-center gap-5">
+                <span className="font-mono text-[13px] text-text-faint tabular-nums">
+                    {asset.yield_apy != null ? `${asset.yield_apy.toFixed(2)}%` : "-"}
+                </span>
+                <span className="text-[11px] text-text-faint transition-colors group-hover:text-text">Why</span>
+            </div>
+        </Link>
     );
 }

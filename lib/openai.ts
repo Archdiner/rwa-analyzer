@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------
-// OpenAI wrapper — structured JSON extraction
+// OpenAI wrapper - structured JSON extraction
 // ---------------------------------------------------------------------------
 // A single thin entry point used by the extractor. Enforces a JSON schema
 // (strict structured output) so the model can only return enum-constrained
-// values. Returns null on any failure — the caller degrades gracefully to
+// values. Returns null on any failure - the caller degrades gracefully to
 // `unverifiable` rather than trusting a malformed response.
 // ---------------------------------------------------------------------------
 

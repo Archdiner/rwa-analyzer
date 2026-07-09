@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// GET /api/universe — the assessed universe as decision-ready summaries
+// GET /api/universe - the assessed universe as decision-ready summaries
 // ---------------------------------------------------------------------------
 // Powers the landing decision surface and doubles as a public read for anyone
 // building diligence tooling on top. Optionally filters to a user profile via

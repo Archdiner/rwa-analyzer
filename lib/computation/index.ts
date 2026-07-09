@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 // NormalizedAssetRecord (Contract A) -> Assessment (Contract B). Pure,
 // deterministic, no LLM, no composite grade. overall_confidence is the lowest
-// dimension confidence used — a tier label, never a risk score.
+// dimension confidence used - a tier label, never a risk score.
 // ---------------------------------------------------------------------------
 
 import {

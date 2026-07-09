@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // Supabase client
 // ---------------------------------------------------------------------------
-// v1 has no user accounts — the app reads/writes the asset store server-side
+// v1 has no user accounts - the app reads/writes the asset store server-side
 // with the service role only. A browser client is intentionally omitted.
 // ---------------------------------------------------------------------------
 

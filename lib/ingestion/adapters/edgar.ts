@@ -4,12 +4,12 @@
 // For a registered '40-Act money-market fund, fetches the latest N-MFP monthly
 // portfolio filing and emits (1) a nav field from the market-based shadow NAV
 // and (2) one regulator_filing EvidenceItem. This is the ONLY green path for the
-// registered-fund (BENJI) class — see edgar-registry.ts for the narrow scope.
+// registered-fund (BENJI) class - see edgar-registry.ts for the narrow scope.
 //
 // Two integrity guards:
 //   - Only registered assets in EDGAR_FUNDS are queried (no guessing a CIK).
 //   - The fetched filing's seriesId MUST match the registry entry, or nothing is
-//     emitted — attributing another fund's filing would manufacture a green.
+//     emitted - attributing another fund's filing would manufacture a green.
 // ---------------------------------------------------------------------------
 
 import { field, type AdapterResult, EMPTY } from "@/lib/ingestion/adapters/base";
