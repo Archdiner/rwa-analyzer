@@ -10,38 +10,36 @@ interface SourceCard {
     art: React.ReactNode;
 }
 
-// Build state as a small roadmap meter (filled bars = how far along), not a
-// colored status pill. Monochrome, so color still only ever means verdict.
 const BUILD_STATE: Record<Status, { text: string; filled: number }> = {
     live: { text: "Live", filled: 3 },
-    researching: { text: "In development", filled: 2 },
+    researching: { text: "Building", filled: 2 },
     planned: { text: "Planned", filled: 1 },
 };
 
 const CARDS: SourceCard[] = [
     {
-        label: "RWA backing",
+        label: "Backing",
         title: "Tokenized funds and treasuries",
         desc: "The hardest case, built first. Reconcile on-chain supply against a fund's filed NAV, or name the auditor when a regulator is not in the loop.",
         status: "live",
         art: <CircuitTraces className="h-full w-full" />,
     },
     {
-        label: "Lending markets",
+        label: "Lending",
         title: "Aave, Morpho and money markets",
         desc: "Read the reserve on-chain. Split organic borrow interest from reward emissions, then grade utilization, bad debt and the oracle it leans on.",
         status: "researching",
         art: <NodeFlow className="h-full w-full" />,
     },
     {
-        label: "Staking and LSTs",
+        label: "Staking",
         title: "Liquid staking derivatives",
         desc: "Pooled ETH against token supply is fully on-chain, so the backing is arithmetic. The forward risk is slashing and validator exposure, named not hidden.",
         status: "planned",
         art: <ConcentricVault className="h-full w-full" />,
     },
     {
-        label: "Emissions and points",
+        label: "Emissions",
         title: "Incentive-driven yield",
         desc: "The part of a headline APY that ends when the program does. I separate the emission schedule from real yield and stamp when it runs dry.",
         status: "planned",
@@ -52,12 +50,12 @@ const CARDS: SourceCard[] = [
 function BuildMeter({ status }: { status: Status }) {
     const { text, filled } = BUILD_STATE[status];
     return (
-        <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-text-faint">
-            <span className="flex items-end gap-[3px]">
+        <span className="inline-flex w-[4.75rem] shrink-0 items-center justify-end gap-2 whitespace-nowrap font-mono text-[10px] uppercase tracking-widest text-text-faint">
+            <span className="flex h-[15px] w-[15px] shrink-0 items-end justify-center gap-[3px]">
                 {[0, 1, 2].map((i) => (
                     <span
                         key={i}
-                        className={`w-[3px] ${i < filled ? "bg-text-muted" : "bg-border-strong"}`}
+                        className={`w-[3px] rounded-sm ${i < filled ? "bg-text-muted" : "bg-border-strong"}`}
                         style={{ height: 6 + i * 3 }}
                     />
                 ))}
@@ -71,8 +69,8 @@ function Card({ card }: { card: SourceCard }) {
     const dim = card.status !== "live";
     return (
         <article className="card flex flex-col overflow-hidden p-6">
-            <div className="flex items-start justify-between">
-                <span className="pill">{card.label}</span>
+            <div className="grid h-8 grid-cols-[minmax(0,1fr)_4.75rem] items-center gap-x-3">
+                <span className="pill min-w-0 max-w-full justify-self-start truncate whitespace-nowrap">{card.label}</span>
                 <BuildMeter status={card.status} />
             </div>
 
@@ -90,7 +88,7 @@ function Card({ card }: { card: SourceCard }) {
 
 export default function YieldSourceGrid() {
     return (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {CARDS.map((c) => (
                 <Card key={c.label} card={c} />
             ))}
