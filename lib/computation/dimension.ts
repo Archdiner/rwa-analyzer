@@ -12,12 +12,16 @@ import {
     minConfidence,
     type Confidence,
     type DimensionAssessment,
-    type DimensionRead,
     type FieldName,
+    type FieldValue,
     type Flag,
 } from "@/lib/contracts";
 import { capFlag } from "@/lib/computation/util";
 import { applyFreshnessAt } from "@/lib/computation/freshness";
+
+/** The minimal read shape finalize needs — accepts a DimensionRead of any value
+ *  type (number/boolean/string), so a dimension can mix read kinds in `used`. */
+type AnyRead = { readonly value: FieldValue | null; readonly source: string; readonly confidence: Confidence };
 
 /** On-chain reserve reads refresh continuously; a day-old read is aging. */
 export const ONCHAIN_CADENCE_MS = 24 * 60 * 60 * 1000;
@@ -35,7 +39,7 @@ export function unknownDimension(reason: string): DimensionAssessment {
 export function finalizeReadDimension(opts: {
     flag: Flag;
     reason: string;
-    used: DimensionRead[];
+    used: readonly AnyRead[];
     asOf: string;
     inputs: FieldName[];
     ceiling?: Flag;

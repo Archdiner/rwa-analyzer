@@ -50,6 +50,19 @@ export default function RiskCard({
             ? nextExpectedAt(record.market_risk_data.utilization.as_of, DAY_MS)
             : null;
 
+    // v1.3 dimensions render only when determined (governance: a classifiable
+    // contract; redemption_history: a covered asset). Otherwise hidden (unknown).
+    const hasGovernance = dims.governance && dims.governance.flag !== "unknown";
+    const hasRedemptionHistory = dims.redemption_history && dims.redemption_history.flag !== "unknown";
+    const governanceNextUpdate =
+        hasGovernance && dims.governance.freshness && record.governance_data
+            ? nextExpectedAt(record.governance_data.is_upgradeable.as_of, DAY_MS)
+            : null;
+    const redemptionHistoryNextUpdate =
+        hasRedemptionHistory && dims.redemption_history.freshness && record.redemption_history_data
+            ? nextExpectedAt(record.redemption_history_data.current_paused.as_of, DAY_MS)
+            : null;
+
     return (
         <article className="rounded-2xl border border-border bg-[color:var(--bg-elev)] overflow-hidden">
             {/* Header */}
@@ -141,6 +154,23 @@ export default function RiskCard({
                         dimension={dims.market_risk}
                         fields={fields}
                         freshnessNextUpdate={marketRiskNextUpdate}
+                    />
+                )}
+                {/* v1.3 governance + redemption-restriction history — shown when determined. */}
+                {hasGovernance && (
+                    <DimensionRow
+                        dimensionKey="governance"
+                        dimension={dims.governance}
+                        fields={fields}
+                        freshnessNextUpdate={governanceNextUpdate}
+                    />
+                )}
+                {hasRedemptionHistory && (
+                    <DimensionRow
+                        dimensionKey="redemption_history"
+                        dimension={dims.redemption_history}
+                        fields={fields}
+                        freshnessNextUpdate={redemptionHistoryNextUpdate}
                     />
                 )}
             </div>

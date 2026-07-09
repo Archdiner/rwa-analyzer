@@ -17,7 +17,8 @@ import type { ParsedAssetId } from "@/lib/chains";
 import { formatAssetId as buildAssetId } from "@/lib/chains";
 import { secUserAgent } from "@/lib/env";
 import { lookupEdgarFund } from "@/lib/ingestion/adapters/edgar-registry";
-import { parseNmfp, navFromFiling, buildRegulatorEvidence } from "@/lib/ingestion/edgar";
+import { parseNmfp, navFromFiling, buildRegulatorEvidence, buildFeeEvents } from "@/lib/ingestion/edgar";
+import { buildFeeContribution } from "@/lib/ingestion/redemption-history";
 
 interface RecentFilings {
     form: string[];
@@ -77,6 +78,14 @@ export async function edgarAdapter(asset: ParsedAssetId): Promise<AdapterResult>
         const result: AdapterResult = {
             fields: {},
             backing_evidence: [buildRegulatorEvidence(data, source)],
+            // v1.3: the registered-MMF redemption-restriction signal — the latest
+            // liquidity-fee flag + any fee events. Merged with the on-chain
+            // pause/incident contribution by the orchestrator.
+            redemption_history_data: buildFeeContribution(
+                data.liquidityFeeApplied,
+                buildFeeEvents(data, source),
+                data.reportDate || new Date().toISOString(),
+            ),
         };
 
         const navValue = navFromFiling(data);
