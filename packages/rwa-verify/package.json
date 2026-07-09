@@ -1,6 +1,6 @@
 {
   "name": "@archdiner/rwa-verify",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server and CLI for machine-readable RWA backing verification",
   "license": "MIT",
   "repository": {
