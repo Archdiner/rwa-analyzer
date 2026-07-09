@@ -7,47 +7,73 @@ import IntegrationGuide from "@/components/marketing/IntegrationGuide";
 import YieldExploder from "@/components/marketing/YieldExploder";
 import ReconciliationScanner from "@/components/marketing/ReconciliationScanner";
 import AgentRouter from "@/components/marketing/AgentRouter";
-import YieldSourceGrid from "@/components/marketing/YieldSourceGrid";
-import { RadialGraph } from "@/components/marketing/Blueprints";
+import YieldCoverage from "@/components/marketing/YieldCoverage";
 import { getUniverse } from "@/lib/service";
 import type { AssetSummary } from "@/lib/decision";
 import { GITHUB_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
-const THESIS: Record<string, { title: string; blurb: string }> = {
+const THESIS: Record<
+    string,
+    { outcome: string; outcomeClass: string; takeaway: string; detail: string; fig: string }
+> = {
     BENJI: {
-        title: "Verified through regulation",
-        blurb: "A registered '40-Act money fund whose holdings are filed with the SEC. Agents get tier: verified_backed - earned through a regulator filing, not an on-chain guess.",
+        outcome: "Backing verified",
+        outcomeClass: "text-green",
+        takeaway: "You can check the reserves yourself.",
+        detail: "Holdings are filed with the SEC (N-MFP). On-chain supply is reconciled against that filing - so a green here means arithmetic, not a vibe.",
+        fig: "FIG. 05 · MATCH",
     },
     OUSG: {
-        title: "Honest unknown",
-        blurb: "Reserves sit in custodian accounts not published on-chain. Agents get tier: unverifiable - I say so rather than infer a green your bot could misread as safe.",
+        outcome: "Not verifiable",
+        outcomeClass: "text-amber",
+        takeaway: "You cannot. I say so out loud.",
+        detail: "Reserves sit with a custodian and are not published on-chain or in a public filing I can read. Higher APY does not change that - the answer stays unknown.",
+        fig: "FIG. 06 · HOLD",
     },
-};
-
-const FLAG_DOT: Record<string, string> = {
-    green: "bg-green",
-    amber: "bg-amber",
-    red: "bg-red",
-    unknown: "bg-unknown",
 };
 
 function ThesisCard({ asset }: { asset: AssetSummary }) {
     const t = THESIS[asset.symbol];
     if (!t) return null;
+    const matched = asset.backing_flag === "green";
     return (
-        <Link href={`/a/${encodeURIComponent(asset.asset_id)}`} className="panel-link flex h-full flex-col p-7">
-            <div className="flex items-center gap-2">
-                <span className={`h-2 w-2 rounded-full ${FLAG_DOT[asset.backing_flag] ?? "bg-unknown"}`} />
+        <Link
+            href={`/a/${encodeURIComponent(asset.asset_id)}`}
+            className="group relative flex h-full flex-col border border-white/12 bg-[#050505]/70 p-6 transition-[border-color] duration-150 hover:border-white/28 sm:p-7"
+        >
+            <span className="pointer-events-none absolute -left-px -top-px h-2.5 w-2.5 border-l border-t border-white/35" />
+            <span className="pointer-events-none absolute -right-px -top-px h-2.5 w-2.5 border-r border-t border-white/35" />
+            <span className="pointer-events-none absolute -bottom-px -left-px h-2.5 w-2.5 border-b border-l border-white/35" />
+            <span className="pointer-events-none absolute -bottom-px -right-px h-2.5 w-2.5 border-b border-r border-white/35" />
+
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">{t.fig}</span>
+                <span className={`font-mono text-[11px] uppercase tracking-[0.12em] ${t.outcomeClass}`}>
+                    {t.outcome}
+                </span>
+            </div>
+
+            <div className="mt-5 flex items-baseline gap-3">
                 <span className="font-mono text-sm font-semibold text-text">{asset.symbol}</span>
                 <span className="truncate text-xs text-text-faint">{asset.name}</span>
             </div>
-            <h3 className="font-display mt-5 text-2xl text-text">{t.title}</h3>
-            <p className="mt-3 flex-1 text-sm leading-relaxed text-text-muted">{t.blurb}</p>
-            <span className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                Full inspection <span aria-hidden>→</span>
+
+            <h3 className="font-display mt-4 text-2xl text-text">{t.takeaway}</h3>
+            <p className="mt-3 flex-1 text-sm leading-relaxed text-text-muted">{t.detail}</p>
+
+            <span className="mt-6 inline-flex items-center gap-1 font-mono text-[12px] uppercase tracking-[0.12em] text-white/45 transition-colors group-hover:text-primary">
+                Inspect {asset.symbol} <span aria-hidden>→</span>
             </span>
+
+            {matched && (
+                <span
+                    aria-hidden
+                    className="pointer-events-none absolute bottom-0 left-0 h-px w-full opacity-40"
+                    style={{ background: "linear-gradient(90deg, transparent, var(--green), transparent)" }}
+                />
+            )}
         </Link>
     );
 }
@@ -59,7 +85,7 @@ export default async function Home() {
 
     return (
         <>
-            {/* ── Dark hero (dryft-style) ──────────────────────────────────── */}
+            {/* 1 ── Promise */}
             <section className="relative flex min-h-[100svh] items-center overflow-hidden pb-20 pt-28 sm:pb-32 sm:pt-40">
                 <HeroBackground />
                 <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-5">
@@ -92,121 +118,43 @@ export default async function Home() {
                 </div>
             </section>
 
-            {/* ── Who this is for ──────────────────────────────────────────── */}
-            <section className="relative z-20 border-y border-border bg-bg py-16 sm:py-20">
-                <div className="mx-auto max-w-6xl px-5">
-                    <p className="eyebrow text-primary">Who this is for</p>
-                    <h2 className="font-display mt-3 max-w-2xl text-3xl text-text sm:text-[2.5rem]">
-                        Built for anyone who moves money before they can read a prospectus.
-                    </h2>
-                    <p className="mt-5 max-w-2xl text-base leading-relaxed text-text-muted">
-                        Earn tabs show APY. They do not show where the proof stops. I give agents, wallets, and
-                        treasury bots a structured gate before a deposit, and give humans the same read without
-                        collapsing it into a boolean safe flag.
-                    </p>
-                    <div className="mt-10">
-                        <AudienceCards />
-                    </div>
-                </div>
-            </section>
-
-            {/* ── Exploder Animation ─────────────────────────────────────── */}
+            {/* 2 ── Why: token ≠ reserve */}
             <section className="relative z-20">
                 <YieldExploder />
             </section>
 
-            {/* ── Identity: what this verifies (yield-source categories) ───── */}
-            <section className="relative z-20 py-16 sm:py-24">
+            {/* 3 ── How: arithmetic, not LLM */}
+            <section className="relative z-20 overflow-hidden py-16 sm:py-24">
                 <div className="mx-auto max-w-6xl px-5">
-                    <div className="grid items-center gap-10 lg:grid-cols-[1fr_360px] lg:gap-16">
-                        <div>
-                            <p className="eyebrow text-primary">Not just an RWA checker</p>
-                            <h2 className="font-display mt-4 text-3xl leading-tight text-text sm:text-[2.75rem]">
-                                One engine for wherever yield comes from.
-                            </h2>
-                            <p className="mt-5 max-w-xl text-base leading-relaxed text-text-muted">
-                                Backing was the hardest case, so I built it first. The same three-axis engine
-                                generalizes by yield-source category, not by token. One lending adapter covers
-                                every Aave and Morpho market; one staking adapter covers every LST. Coverage grows
-                                where proof is possible, and <span className="text-text">unknown</span> stays a
-                                valid, honest answer.
-                            </p>
-                        </div>
-                        <div className="mx-auto w-full max-w-[360px]">
-                            <RadialGraph className="h-auto w-full" />
-                        </div>
-                    </div>
-
-                    <div className="mt-14">
-                        <YieldSourceGrid />
-                    </div>
-                </div>
-            </section>
-
-                {/* ── Reconciliation Scanner ─────────────────────────────────── */}
-                <section className="relative z-20 py-16 sm:py-24 overflow-hidden">
-                    <div className="mx-auto max-w-6xl px-5 text-center mb-16">
+                    <div className="max-w-xl">
                         <p className="eyebrow text-primary">The engine</p>
                         <h2 className="font-display mt-3 text-3xl text-text sm:text-[2.75rem]">
                             Deterministic reconciliation
                         </h2>
-                        <p className="mt-5 mx-auto max-w-2xl text-base leading-relaxed text-text-muted">
-                            I never let a language model score an asset. It only parses documents into
-                            structured data. Then plain arithmetic runs against on-chain reads, and if the two
-                            sides do not match, the verdict drops. No model gets a vote on the color.
+                        <p className="mt-5 text-base leading-relaxed text-text-muted">
+                            I never let a language model score an asset. It only parses documents into structured
+                            data. Then plain arithmetic runs against on-chain reads, and if the two sides do not
+                            match, the verdict drops. No model gets a vote on the color.
                         </p>
                     </div>
-                    <div className="px-5">
-                        <ReconciliationScanner />
-                    </div>
-                </section>
-
-                {/* ── Agent Router Visualization ─────────────────────────────── */}
-                <section className="relative z-20 py-16 sm:py-24 overflow-hidden border-t border-border">
-                    <div className="mx-auto max-w-6xl px-5 text-center mb-16">
-                        <p className="eyebrow text-primary">Agent routing</p>
-                        <h2 className="font-display mt-3 text-3xl text-text sm:text-[2.75rem]">
-                            Gate execution on verifiable proof.
-                        </h2>
-                        <p className="mt-5 mx-auto max-w-2xl text-base leading-relaxed text-text-muted">
-                            Your agent asks the engine before it moves money. If backing or market risk cannot be
-                            verified independently, the deposit is held back and the reason is handed back in
-                            plain terms, not a silent failure.
-                        </p>
-                    </div>
-                    <div className="px-5">
-                        <AgentRouter />
-                    </div>
-                </section>
-
-            {/* ── Integration tutorial ─────────────────────────────────────── */}
-            <section id="integrate" className="scroll-mt-20 py-16 sm:py-24 relative z-20 bg-bg border-y border-border">
-                <div className="mx-auto max-w-6xl px-5">
-                    <p className="eyebrow text-primary">Get started in five minutes</p>
-                    <h2 className="font-display mt-3 max-w-2xl text-3xl text-text sm:text-[2.75rem]">
-                        Wire a pre-deposit check into your agent, wallet, or bot.
-                    </h2>
-                    <p className="mt-5 max-w-2xl text-base leading-relaxed text-text-muted">
-                            Same <code className="font-mono text-sm text-white/90">AgentVerdict</code> contract everywhere. Gate on{" "}
-                            <code className="font-mono text-sm text-white/90">backing.tier</code> and{" "}
-                            <code className="font-mono text-sm text-white/90">market_risk</code>, surface{" "}
-                            <code className="font-mono text-sm text-white/90">trust_boundary</code> and{" "}
-                            <code className="font-mono text-sm text-white/90">caveats</code> - never collapse to safe/unsafe.
-                    </p>
                     <div className="mt-12">
-                        <IntegrationGuide />
+                        <ReconciliationScanner />
                     </div>
                 </div>
             </section>
 
-            {/* ── Thesis ───────────────────────────────────────────────────── */}
+            {/* 4 ── Proof: one green, one unknown */}
             {benji && ousg && (
-                <section className="py-16 sm:py-24">
+                <section className="relative z-20 border-t border-border py-16 sm:py-24">
                     <div className="mx-auto max-w-6xl px-5">
-                        <p className="eyebrow text-primary">Why this exists</p>
+                        <p className="eyebrow text-primary">Worked example</p>
                         <h2 className="font-display mt-3 max-w-2xl text-3xl text-text sm:text-[2.75rem]">
-                            One real green. One honest unknown. Your agent should see both.
+                            Same question, two answers.
                         </h2>
+                        <p className="mt-5 max-w-2xl text-base leading-relaxed text-text-muted">
+                            Both are tokenized Treasuries. Only one has a public filing I can reconcile against.
+                            That is the whole product: say when proof exists, and when it does not.
+                        </p>
                         <div className="mt-10 grid items-stretch gap-6 sm:grid-cols-2">
                             <ThesisCard asset={benji} />
                             <ThesisCard asset={ousg} />
@@ -215,40 +163,101 @@ export default async function Home() {
                 </section>
             )}
 
-            {/* ── Decision explorer (simulate routing) ─────────────────────────────── */}
-            <section id="explore" className="scroll-mt-20 py-16 sm:py-24 border-t border-border">
+            {/* 5 ── What an agent does with it */}
+            <section className="relative z-20 overflow-hidden border-t border-border py-16 sm:py-24">
                 <div className="mx-auto max-w-6xl px-5">
-                    <p className="eyebrow text-primary">For humans</p>
+                    <div className="ml-auto max-w-xl lg:text-right">
+                        <p className="eyebrow text-primary">Agent routing</p>
+                        <h2 className="font-display mt-3 text-3xl text-text sm:text-[2.75rem]">
+                            Gate execution on verifiable proof.
+                        </h2>
+                        <p className="mt-5 text-base leading-relaxed text-text-muted">
+                            Your agent asks before it moves money. If backing cannot be verified independently,
+                            the deposit is held back and the reason is handed back - not a silent failure.
+                        </p>
+                    </div>
+                    <div className="mt-12">
+                        <AgentRouter />
+                    </div>
+                    <div className="mt-16">
+                        <p className="eyebrow text-primary">Who asks</p>
+                        <h3 className="font-display mt-3 max-w-xl text-2xl text-text sm:text-3xl">
+                            Agents, wallets, and ops that move money before a prospectus.
+                        </h3>
+                        <div className="mt-10">
+                            <AudienceCards />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* 6 ── Primary action: integrate */}
+            <section id="integrate" className="relative z-20 scroll-mt-20 border-y border-border bg-bg py-16 sm:py-24">
+                <div className="mx-auto max-w-6xl px-5">
+                    <p className="eyebrow text-primary">Get started</p>
                     <h2 className="font-display mt-3 max-w-2xl text-3xl text-text sm:text-[2.75rem]">
-                        See what you can reach, and how far the proof goes.
+                        Wire a pre-deposit check in five minutes.
                     </h2>
                     <p className="mt-5 max-w-2xl text-base leading-relaxed text-text-muted">
-                        Agents call the API. People use this. Same engine underneath, ranked so verifiable
-                        backing always sits above higher yield you would have to trust on faith.
+                        Same <code className="font-mono text-sm text-white/90">AgentVerdict</code> everywhere.
+                        Gate on <code className="font-mono text-sm text-white/90">backing.tier</code> and{" "}
+                        <code className="font-mono text-sm text-white/90">market_risk</code>, surface{" "}
+                        <code className="font-mono text-sm text-white/90">trust_boundary</code> and{" "}
+                        <code className="font-mono text-sm text-white/90">caveats</code>.
+                    </p>
+                    <div className="mt-12">
+                        <IntegrationGuide />
+                    </div>
+                </div>
+            </section>
+
+            {/* 7 ── Coverage map (late, honest roadmap) */}
+            <section className="relative z-20 py-16 sm:py-24">
+                <div className="mx-auto max-w-6xl px-5">
+                    <p className="eyebrow text-primary">Coverage</p>
+                    <h2 className="font-display mt-3 max-w-2xl text-3xl text-text sm:text-[2.75rem]">
+                        One engine for wherever yield comes from.
+                    </h2>
+                    <p className="mt-5 max-w-2xl text-base leading-relaxed text-text-muted">
+                        Backing was the hardest case, so I built it first. Coverage grows where proof is
+                        possible - hover a category to see what is live versus still planned.
+                    </p>
+                    <div className="mt-12">
+                        <YieldCoverage />
+                    </div>
+                </div>
+            </section>
+
+            {/* 8 ── Human try-it (explore + lookup, one section) */}
+            <section id="explore" className="scroll-mt-20 border-t border-border py-16 sm:py-24">
+                <div className="mx-auto max-w-6xl px-5">
+                    <p className="eyebrow text-primary">Try it</p>
+                    <h2 className="font-display mt-3 max-w-2xl text-3xl text-text sm:text-[2.75rem]">
+                        What can you buy from where you sit?
+                    </h2>
+                    <p className="mt-5 max-w-2xl text-base leading-relaxed text-text-muted">
+                        Set your location and size. I list assets you are allowed to buy, sorted by how far the
+                        backing proof goes - verified first, higher APY with weaker proof further down.
                     </p>
                     <div className="mt-12">
                         <DecisionExplorer universe={universe} />
                     </div>
-                </div>
-            </section>
-
-            {/* ── Manual lookup ──────────────────────────────────────────── */}
-            <section className="border-t border-border py-16 sm:py-24">
-                <div className="mx-auto max-w-6xl px-5">
-                    <p className="eyebrow text-primary">Manual lookup</p>
-                    <h2 className="font-display mt-3 text-2xl text-text sm:text-3xl">
-                        Any contract address or seeded ticker
-                    </h2>
-                    <div className="mt-6 max-w-xl">
-                        <SearchBar />
+                      <div className="mt-16 max-w-xl border-t border-white/10 pt-10">
+                        <p className="eyebrow text-primary">Or look one up</p>
+                        <h3 className="mt-3 font-mono text-[13px] uppercase tracking-[0.12em] text-text">
+                            Contract address or ticker
+                        </h3>
+                        <div className="mt-5">
+                            <SearchBar />
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* ── CTA band ──────────────────────────────────────────── */}
-            <section className="py-20 sm:py-32 border-t border-border relative overflow-hidden">
-                <div className="mx-auto max-w-6xl px-5 text-center relative z-10">
-                    <h2 className="font-display text-4xl text-text sm:text-6xl leading-[1.05]">
+            {/* 9 ── Close */}
+            <section className="relative overflow-hidden border-t border-border py-20 sm:py-32">
+                <div className="relative z-10 mx-auto max-w-6xl px-5 text-center">
+                    <h2 className="font-display text-4xl leading-[1.05] text-text sm:text-6xl">
                         Your earn tab does not verify backing.
                         <br />
                         <span className="text-primary">This does.</span>
@@ -259,7 +268,7 @@ export default async function Home() {
                     <div className="mt-10 flex flex-wrap justify-center gap-4">
                         <a
                             href="#integrate"
-                            className="inline-flex items-center rounded-md bg-primary px-8 py-4 text-sm font-medium text-primary-contrast transition-all hover:bg-primary-hover"
+                            className="inline-flex items-center rounded-md bg-primary px-8 py-4 text-sm font-medium text-primary-contrast transition-colors hover:bg-primary-hover"
                         >
                             Read the integration guide
                         </a>
@@ -267,7 +276,7 @@ export default async function Home() {
                             href={GITHUB_URL}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center rounded-md border border-white/20 bg-white/5 backdrop-blur-sm px-8 py-4 text-sm font-medium text-white hover:bg-white/10 hover:border-white/40 transition-all"
+                            className="inline-flex items-center rounded-md border border-white/20 bg-white/5 px-8 py-4 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:border-white/40 hover:bg-white/10"
                         >
                             View source on GitHub
                         </a>

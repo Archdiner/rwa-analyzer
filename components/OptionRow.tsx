@@ -36,7 +36,7 @@ export function ReachableRow({ item }: { item: ReachableAsset }) {
     return (
         <Link
             href={`/a/${encodeURIComponent(asset.asset_id)}`}
-            className="group flex items-start justify-between gap-6 px-6 py-5 transition-colors hover:bg-white/[0.02]"
+            className="group flex items-start justify-between gap-6 px-5 py-5 transition-colors hover:bg-white/[0.03] sm:px-6"
         >
             <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-3">
@@ -53,7 +53,7 @@ export function ReachableRow({ item }: { item: ReachableAsset }) {
                 )}
 
                 {caveats.length > 0 && (
-                    <div className="mt-3 space-y-1 border-l border-border pl-3">
+                    <div className="mt-3 space-y-1 border-l border-white/15 pl-3">
                         {caveats.map((c) => (
                             <p key={c} className="text-[12px] leading-relaxed text-text-faint">
                                 {c}
@@ -82,7 +82,7 @@ export function ClosedRow({ item }: { item: ClosedAsset }) {
     return (
         <Link
             href={`/a/${encodeURIComponent(asset.asset_id)}`}
-            className="group flex items-center justify-between gap-4 px-6 py-4 transition-colors hover:bg-white/[0.02]"
+            className="group flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-white/[0.03] sm:px-6"
         >
             <div className="flex min-w-0 items-baseline gap-3">
                 <span className="font-mono text-sm text-text-muted">{asset.symbol}</span>
