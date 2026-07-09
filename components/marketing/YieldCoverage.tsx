@@ -189,7 +189,10 @@ function InteractiveRadial({
                         onFocus={() => onSelect(n.id)}
                         onBlur={() => onSelect(null)}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") onSelect(on ? null : n.id);
+                            if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                onSelect(on ? null : n.id);
+                            }
                         }}
                     >
                         {n.label.toUpperCase()}
