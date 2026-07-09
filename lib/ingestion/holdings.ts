@@ -1,15 +1,15 @@
 // ---------------------------------------------------------------------------
-// On-chain reconstruction — pure logic (no network, fully testable)
+// On-chain reconstruction - pure logic (no network, fully testable)
 // ---------------------------------------------------------------------------
 // Two jobs, both kept out of the network adapter so they can be unit-tested:
 //
-//   1. leafBackingIndependence — the ANTI-LAUNDERING ceiling. Reading a balance
+//   1. leafBackingIndependence - the ANTI-LAUNDERING ceiling. Reading a balance
 //      on-chain is independence-5 in EXTRACTION (no parse risk), but the BACKING
 //      independence of that evidence can be no higher than the independence of
 //      what is held. Holding an amber token (BUIDL: unknown backing) is amber,
 //      not green. Recursive and cycle-safe: a reference cycle proves nothing.
 //
-//   2. buildHoldingsEvidence — turn valued holdings into one EvidenceItem, with
+//   2. buildHoldingsEvidence - turn valued holdings into one EvidenceItem, with
 //      coverage measured against supply x NAV so a partial reconstruction reads
 //      as "X% verified on-chain", not a false full green.
 // ---------------------------------------------------------------------------
@@ -24,11 +24,11 @@ type WalletMap = Record<string, ReserveWalletEntry>;
 
 /**
  * The backing independence (0–5) a held instrument confers as a reserve leaf.
- *   cash_treasury_proven — the reserve IS cash/Treasuries with proof: 5.
- *   proven leaf           — an asset already green in our system: 5.
- *   another RWA token     — recurse into ITS reserves (ceiling = what it holds).
- *   an RWA with no wallet  — we can't independently prove it: 1 (issuer trust).
- *   stablecoin (untracked) — a claim on an issuer, not independently proven: 2.
+ *   cash_treasury_proven - the reserve IS cash/Treasuries with proof: 5.
+ *   proven leaf           - an asset already green in our system: 5.
+ *   another RWA token     - recurse into ITS reserves (ceiling = what it holds).
+ *   an RWA with no wallet  - we can't independently prove it: 1 (issuer trust).
+ *   stablecoin (untracked) - a claim on an issuer, not independently proven: 2.
  */
 export function leafBackingIndependence(
     assetId: string,
@@ -37,7 +37,7 @@ export function leafBackingIndependence(
     visited: Set<string> = new Set(),
 ): number {
     const id = assetId.toLowerCase();
-    if (visited.has(id)) return 0; // cycle — proves nothing
+    if (visited.has(id)) return 0; // cycle - proves nothing
     if (provenLeaves.has(id)) return 5;
 
     const entry = wallets[id];
@@ -88,7 +88,7 @@ export interface ValuedHolding {
 
 /**
  * Builds a single onchain_holdings evidence item from valued holdings.
- * `expectedUsd` is supply × NAV — the AUM the reserve must cover. Coverage below
+ * `expectedUsd` is supply × NAV - the AUM the reserve must cover. Coverage below
  * 100% is the honest "X% verified on-chain, remainder unverified" signal.
  * Returns null when nothing is readable (adapter then contributes nothing).
  */

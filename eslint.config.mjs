@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     ".worktrees/**",
     "packages/rwa-verify/dist/**",
+    // One-off Node asset-generation utilities (CommonJS).
+    "scripts/*.js",
   ]),
 ]);
 

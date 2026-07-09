@@ -53,20 +53,20 @@ export interface PorFeedEntry {
  * Intentionally starts EMPTY. Entries are added only after verifying the feed
  * address and its attestation model on data.chain.link. Until an asset is
  * listed here, the Chainlink adapter contributes nothing and backing falls to
- * `reserves_method: none` (red) — the honest default.
+ * `reserves_method: none` (red) - the honest default.
  *
  * FLAGSHIP FEED VERIFICATION (checked Chainlink reference-data-directory
- * 2026-07-07 — the machine-readable source behind data.chain.link; Ethereum
+ * 2026-07-07 - the machine-readable source behind data.chain.link; Ethereum
  * mainnet has 315 feeds incl. many PoR/reserves feeds, so absence is real):
  *   - OUSG  (1:0x1b19c19393e2d034d8ff31ff34c81252fcbbee92): ON-CHAIN ONLY.
  *       VERIFIED no Chainlink RESERVES/PoR feed (ETH mainnet + Avalanche
  *       checked). Ondo's only Chainlink feeds are PRICE feeds for its tokenized
- *       equities/ETFs (SPYon, QQQon, TSLAon, "Ondo API"/"Ondo Tokenized ETF") —
+ *       equities/ETFs (SPYon, QQQon, TSLAon, "Ondo API"/"Ondo Tokenized ETF") -
  *       price != reserves, so G2 fails. Backing stays unknown. Revisit if Ondo
  *       ships a real PoR feed (the Feb-2026 integration announcement had not
  *       produced one as of this check).
  *   - USDY  (1:0x96f6ef951840721adbf46ac996b59e0235cb985c): ON-CHAIN ONLY.
- *       Same finding — no Chainlink reserves/PoR feed. G2 fails.
+ *       Same finding - no Chainlink reserves/PoR feed. G2 fails.
  *   - USYC  (1:0x136471a34f6ef19fe571effc1ca711fdb8e49f2b): NOT CHECKED THIS RUN.
  *       Prior research: daily NAV oracle on the Chainlink interface but likely
  *       ISSUER-OPERATED -> would be self_reported (amber), and no reserves feed

@@ -1,15 +1,8 @@
 // ---------------------------------------------------------------------------
-// RWA backing-verification MCP server (the primary artifact)
+// RWA backing-verification MCP server
 // ---------------------------------------------------------------------------
-// Exposes the backing-verifiability engine as tools an agent can call BEFORE
-// it commits money to a tokenized real-world asset. Thin client of
-// /api/verify and /api/universe (set RWA_API_BASE; defaults to deployed API).
-// No secrets needed; same contract as the site.
-//
-// Scope is tight: "is this asset's backing real?" One capability, not a trust
-// protocol. Response puts caveats first: no boolean, two axes (tier +
-// confidence), text leads with meaning/trust_boundary/caveats so agents can't
-// collapse a nuanced verdict into safe/unsafe.
+// Thin stdio client of GET /api/verify and GET /api/universe.
+// Set RWA_API_BASE (defaults to the deployed API). No local secrets required.
 // ---------------------------------------------------------------------------
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -30,7 +23,7 @@ async function apiGet<T>(path: string): Promise<T> {
 function renderVerdict(v: AgentVerdict): string {
     const b = v.backing;
     const lines = [
-        `${v.asset.symbol} (${v.asset.name}): backing verdict`,
+        `${v.asset.symbol} (${v.asset.name}) - backing verdict`,
         ``,
         `tier: ${b.tier}   |   confidence: ${b.confidence}`,
         `MEANING: ${b.meaning}`,
@@ -60,16 +53,13 @@ server.registerTool(
     {
         title: "Check RWA backing verifiability",
         description:
-            "Honest, machine-readable backing read for a tokenized real-world asset " +
-            "(money-market funds, tokenized treasuries, yield-bearing stablecoins). " +
-            "Call this before parking money somewhere an agent can't eyeball. " +
-            "Input: ticker (OUSG, BENJI, sDAI) or '{chainId}:{address}'.\n\n" +
-            "Two axes, read together: `tier` (verified_backed | partially_verified | " +
-            "does_not_reconcile | unverifiable: did backing reconcile against an independent source?) " +
-            "and `confidence` (verified | auto | unverifiable: how was the figure obtained?). " +
-            "No safe/unsafe boolean, by design. `verified_backed` is NOT a safety guarantee. " +
-            "`unverifiable` is NOT a judgment of danger; no red flag is not a green light. " +
-            "Always show the user `meaning`, `trust_boundary`, and `caveats`. Never collapse to a boolean.",
+            "Returns a machine-readable backing-verifiability read for a tokenized real-world " +
+            "asset (money-market funds, tokenized treasuries, yield-bearing stablecoins). " +
+            "Input is a ticker (e.g. OUSG, BENJI, sDAI) or '{chainId}:{address}'.\n\n" +
+            "The result has two axes: `tier` (verified_backed | partially_verified | " +
+            "does_not_reconcile | unverifiable) and `confidence` (verified | auto | unverifiable). " +
+            "There is no safe/unsafe boolean. Surface `meaning`, `trust_boundary`, and `caveats` " +
+            "to the user; do not reduce the verdict to a boolean.",
         inputSchema: {
             asset: z
                 .string()
@@ -116,7 +106,7 @@ server.registerTool(
             const text = universe
                 .map(
                     (a) =>
-                        `${a.symbol}: ${a.name}, backing ${a.backing_flag}/${a.backing_confidence}` +
+                        `${a.symbol} - ${a.name}: backing ${a.backing_flag}/${a.backing_confidence}` +
                         (a.jurisdiction ? ` (${a.jurisdiction})` : ""),
                 )
                 .join("\n");

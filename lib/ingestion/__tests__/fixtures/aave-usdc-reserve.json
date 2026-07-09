@@ -1,0 +1,26 @@
+{
+  "_comment": "Recorded on-chain from Aave v3 Ethereum USDC reserve at mainnet block 25489702 via scripts/dump-aave-reserve.ts. Reward confirmed empty on-chain (RewardsController.getRewardsByAsset(aEthUSDC) == []). Real utilization ~87% and a dust deficit ~1.55 USDC.",
+  "totalAToken": "2133402562241313",
+  "totalStableDebt": "0",
+  "totalVariableDebt": "1865198368613236",
+  "liquidityRate": "29908268661607149123306704",
+  "lastUpdateTimestamp": 1783536143,
+  "config": {
+    "decimals": 6,
+    "ltvBps": 7500,
+    "liquidationThresholdBps": 7800,
+    "reserveFactorBps": 1000,
+    "isActive": true,
+    "isFrozen": false
+  },
+  "isPaused": false,
+  "supplyCap": "2500000000",
+  "borrowCap": "2250000000",
+  "oraclePrice": "99969504",
+  "oracleSource": "0x54586bE62E3c3580375aE3723C145253060Ca0C2",
+  "deficit": "1551621",
+  "rewardApy": 0,
+  "rewardConfidence": "verified",
+  "rewardSource": "aave:rewards",
+  "underlyingSymbol": "USDC"
+}

@@ -7,7 +7,7 @@
 import { assessBacking } from "@/lib/computation/backing";
 import { f, ev, rec } from "./helpers";
 
-describe("backing resolver — anti-laundering (on-chain reconstruction)", () => {
+describe("backing resolver - anti-laundering (on-chain reconstruction)", () => {
     it("holding an amber token (independence 1) is amber, not green, even reconciling", () => {
         const r = assessBacking(
             rec({ supply: f(100), nav: f(1) }, [
@@ -45,7 +45,7 @@ describe("backing resolver — anti-laundering (on-chain reconstruction)", () =>
     });
 });
 
-describe("backing resolver — cross-source conflict", () => {
+describe("backing resolver - cross-source conflict", () => {
     it("two independent sources disagreeing on reserves is a red", () => {
         const r = assessBacking(
             rec({ supply: f(100), nav: f(1) }, [
@@ -68,9 +68,9 @@ describe("backing resolver — cross-source conflict", () => {
     });
 });
 
-describe("backing resolver — tranche of a registered fund (slice-fund)", () => {
+describe("backing resolver - tranche of a registered fund (slice-fund)", () => {
     it("green via regulator filing + NAV integrity, skipping supply x NAV reconciliation", () => {
-        // On-chain supply x NAV would be ~$47M vs a ~$400M fund — reconciliation
+        // On-chain supply x NAV would be ~$47M vs a ~$400M fund - reconciliation
         // is category-inapplicable. No supply provided on purpose.
         const r = assessBacking(
             rec(

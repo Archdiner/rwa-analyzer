@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------
-// EDGAR N-MFP parsing — pure logic (no network, fully testable)
+// EDGAR N-MFP parsing - pure logic (no network, fully testable)
 // ---------------------------------------------------------------------------
 // Form N-MFP3 is the monthly portfolio-holdings report every money-market fund
 // files with the SEC. It is regulator-grade, independent, and machine-readable
-// (structured XML) — the strongest evidence in the hierarchy, and the only path
+// (structured XML) - the strongest evidence in the hierarchy, and the only path
 // to a genuine green for the registered-fund (BENJI) class.
 //
 // This module turns the filing XML into a NormalizedAssetRecord's nav field +
@@ -12,24 +12,24 @@
 //
 // EXTRACTION is "structured", NOT "llm_extracted": these are typed XML leaves we
 // read by tag name, so there is no parse-confidence and no citation to validate
-// (the guards that gate LLM figures do not apply — the read itself is the proof,
+// (the guards that gate LLM figures do not apply - the read itself is the proof,
 // like an on-chain balance). INDEPENDENCE is 5 (a regulator filing).
 // ---------------------------------------------------------------------------
 
 import { XMLParser } from "fast-xml-parser";
-import type { EvidenceItem } from "@/lib/contracts";
+import type { EvidenceItem, FeeEvent } from "@/lib/contracts";
 
 export interface NmfpData {
-    /** Fund series the filing is for — checked against the registry entry. */
+    /** Fund series the filing is for - checked against the registry entry. */
     seriesId: string;
     seriesName: string;
-    /** Report ("as of") date — month end. NOT the later filing date. */
+    /** Report ("as of") date - month end. NOT the later filing date. */
     reportDate: string;
     /** Whole-fund net assets (USD). The token may be only a slice of this. */
     netAssets: number;
     /** Target stable price ($1.0000 for a stable-NAV MMF). */
     stablePrice: number | null;
-    /** Most recent market-based (shadow) NAV/share — the real integrity signal. */
+    /** Most recent market-based (shadow) NAV/share - the real integrity signal. */
     marketNav: number | null;
     /** MMF category, e.g. "Government". */
     category: string | null;
@@ -37,6 +37,10 @@ export interface NmfpData {
     categories: Record<string, number>;
     /** Weighted average maturity in days (Rule 2a-7 caps it at 60). */
     wamDays: number | null;
+    /** N-MFP `liquidityFeeFundApplyFlag`: did the fund apply a liquidity fee this
+     *  period? true = "Y", false = "N", null = tag absent. The modern MMF
+     *  redemption-restriction signal (regulatory gates are dead post-Oct-2023). */
+    liquidityFeeApplied: boolean | null;
 }
 
 /** Recursively collects every string value stored under `key`, at any depth. */
@@ -98,7 +102,37 @@ export function parseNmfp(xml: string): NmfpData | null {
         category: collect(root, "moneyMarketFundCategory")[0] ?? null,
         categories,
         wamDays: firstNumber(root, "averagePortfolioMaturity"),
+        liquidityFeeApplied: parseFlag(collect(root, "liquidityFeeFundApplyFlag")[0]),
     };
+}
+
+/** Parses an N-MFP Y/N flag: "Y" → true, "N" → false, anything else → null. */
+function parseFlag(v: string | undefined): boolean | null {
+    if (v == null) return null;
+    const s = String(v).trim().toUpperCase();
+    if (s === "Y" || s === "YES" || s === "TRUE") return true;
+    if (s === "N" || s === "NO" || s === "FALSE") return false;
+    return null;
+}
+
+/**
+ * Builds liquidity-fee events from a parsed filing. A fee-applied period emits
+ * one event stamped with the report date; "no fee" or an absent flag emits none.
+ * `mandatory`/`amount_pct` are best-effort (the detail tags only appear when a
+ * fee was actually applied, which the flagship funds have not done).
+ */
+export function buildFeeEvents(data: NmfpData, source: string): FeeEvent[] {
+    if (data.liquidityFeeApplied !== true) return [];
+    return [
+        {
+            as_of: data.reportDate || new Date().toISOString(),
+            kind: "liquidity_fee",
+            mandatory: false, // detail not present unless surfaced; conservative default
+            amount_pct: null,
+            source,
+            citation: null, // structured XML flag — the filing itself is the proof
+        },
+    ];
 }
 
 /** The NAV/share the filing establishes: market (shadow) NAV, else stable target. */

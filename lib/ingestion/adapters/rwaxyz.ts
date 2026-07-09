@@ -1,11 +1,11 @@
 // ---------------------------------------------------------------------------
-// rwa.xyz adapter (OPTIONAL — Enterprise API)
+// rwa.xyz adapter (OPTIONAL - Enterprise API)
 // ---------------------------------------------------------------------------
 // IMPORTANT: rwa.xyz has no free programmatic API. The $0 plan is dashboard-
 // only; /v4/assets requires a paid Enterprise key. This adapter therefore runs
 // only when RWA_XYZ_API_KEY is set, and never scrapes. When absent (the common
 // case) it contributes nothing and the qualitative load falls to the seed +
-// LLM extractor — exactly the coverage-tier honesty mechanism.
+// LLM extractor - exactly the coverage-tier honesty mechanism.
 //
 // Their research team human-verifies data, so identity fields are `verified`
 // (reference_api). We defensively map only well-known, stable fields; anything

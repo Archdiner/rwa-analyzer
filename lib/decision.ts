@@ -1,11 +1,5 @@
 // ---------------------------------------------------------------------------
-// Decision engine — the thing a list structurally cannot do
-// ---------------------------------------------------------------------------
-// Given WHERE a user is and roughly HOW MUCH they have, filters the universe to
-// what they can ACTUALLY reach, then ranks it SAFETY-FIRST (the safety read
-// leads; yield is what you weigh against it). A list shows options; this answers
-// a decision. Pure and network-free so the reachability + ranking rules are
-// unit-tested, not trusted.
+// Decision engine - reachability filter and safety-first ranking
 // ---------------------------------------------------------------------------
 
 import type { Confidence, Flag, Jurisdiction, RedemptionSpeed } from "@/lib/contracts";
@@ -20,9 +14,9 @@ export type UserJurisdiction =
     | "eu";
 
 export const USER_JURISDICTIONS: { id: UserJurisdiction; label: string }[] = [
-    { id: "us_retail", label: "US — retail" },
-    { id: "us_accredited", label: "US — accredited investor" },
-    { id: "us_qualified_purchaser", label: "US — qualified purchaser ($5M+)" },
+    { id: "us_retail", label: "US (retail)" },
+    { id: "us_accredited", label: "US (accredited investor)" },
+    { id: "us_qualified_purchaser", label: "US (qualified purchaser, $5M+)" },
     { id: "non_us", label: "Outside the US" },
     { id: "eu", label: "European Union" },
 ];
@@ -42,7 +36,7 @@ export interface UserProfile {
     amount: AmountBand;
 }
 
-/** Upper bound of the amount band — the most the user might commit. */
+/** Upper bound of the amount band - the most the user might commit. */
 export function amountCeiling(band: AmountBand): number {
     return AMOUNT_BANDS.find((b) => b.id === band)?.ceiling ?? 0;
 }
@@ -140,7 +134,7 @@ export function evaluate(asset: AssetSummary, profile: UserProfile): ReachableAs
             return { asset, reason: `Restricted to ${JURISDICTION_LABEL[juris]}.` };
         }
     } else {
-        caveats.push("Eligibility rules are unconfirmed — verify before depositing.");
+        caveats.push("Eligibility rules are unconfirmed; verify before depositing.");
     }
 
     // Minimum gate.
@@ -179,7 +173,7 @@ export function decide(universe: AssetSummary[], profile: UserProfile): Decision
     }
 
     reachable.sort((x, y) => bySafetyThenYield(x.asset, y.asset));
-    // Closed: show the ones you're closest to (highest yield) first — aspirational.
+    // Closed: show the ones you're closest to (highest yield) first - aspirational.
     closed.sort((x, y) => (y.asset.yield_apy ?? -1) - (x.asset.yield_apy ?? -1));
 
     return { reachable, closed };

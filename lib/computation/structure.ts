@@ -2,7 +2,7 @@
 // Issuer & structure (spec §5.4)
 // ---------------------------------------------------------------------------
 // What legal wrapper holds the asset, and what protections come with it? The
-// wrapper is usually LLM-extracted, so this dimension is typically `auto` — and
+// wrapper is usually LLM-extracted, so this dimension is typically `auto` - and
 // labeled as such. That is honest, not a weakness.
 // ---------------------------------------------------------------------------
 

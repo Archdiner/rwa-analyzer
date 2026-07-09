@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// GET /api/search?q=... — resolve a lookup to an asset_id or candidates
+// GET /api/search?q=... - resolve a lookup to an asset_id or candidates
 // ---------------------------------------------------------------------------
 
 import { NextRequest } from "next/server";

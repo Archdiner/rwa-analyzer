@@ -24,7 +24,7 @@ const AUTO_NOTE = "Based on auto-extracted data.";
 /**
  * Returns a field only if it is present AND at least `auto` confidence. An
  * `unverifiable` field (e.g. a citation that failed validation) is treated as
- * missing — the rule reads it as `unknown`, never as fact.
+ * missing - the rule reads it as `unknown`, never as fact.
  */
 export function usable<T extends FieldValue>(f?: FieldObject<T>): FieldObject<T> | undefined {
     if (!f) return undefined;
@@ -42,6 +42,18 @@ export function downgradeFlag(flag: Flag): Flag {
     if (flag === "green") return "amber";
     if (flag === "amber") return "red";
     return flag;
+}
+
+/** Flag goodness rank (green best) for the anti-laundering ceiling. */
+const FLAG_RANK: Record<Flag, number> = { red: 0, unknown: 1, amber: 2, green: 3 };
+
+/**
+ * Caps a flag at a ceiling color (anti-laundering: "you cannot be safer than
+ * the thing you lent"). Never returns better than `ceiling`, and never promotes
+ * a flag that is already at or below the ceiling.
+ */
+export function capFlag(flag: Flag, ceiling: Flag): Flag {
+    return FLAG_RANK[flag] > FLAG_RANK[ceiling] ? ceiling : flag;
 }
 
 /**

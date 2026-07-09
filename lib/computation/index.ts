@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 // NormalizedAssetRecord (Contract A) -> Assessment (Contract B). Pure,
 // deterministic, no LLM, no composite grade. overall_confidence is the lowest
-// dimension confidence used — a tier label, never a risk score.
+// dimension confidence used - a tier label, never a risk score.
 // ---------------------------------------------------------------------------
 
 import {
@@ -15,6 +15,10 @@ import { assessBacking } from "@/lib/computation/backing";
 import { assessRedemption } from "@/lib/computation/redemption";
 import { assessAccess } from "@/lib/computation/access";
 import { assessStructure } from "@/lib/computation/structure";
+import { assessYieldSource } from "@/lib/computation/yield-source";
+import { assessMarketRisk } from "@/lib/computation/market-risk";
+import { assessGovernance } from "@/lib/computation/governance";
+import { assessRedemptionHistory } from "@/lib/computation/redemption-history";
 
 export function computeAssessment(record: NormalizedAssetRecord): Assessment {
     const dimensions = {
@@ -22,6 +26,14 @@ export function computeAssessment(record: NormalizedAssetRecord): Assessment {
         redemption: assessRedemption(record.fields),
         access: assessAccess(record.fields),
         structure: assessStructure(record.fields),
+        // v1.2 - additive. `unknown` for any non-lending asset (no data present),
+        // so overall_confidence (which excludes `unknown`) does not regress.
+        yield_source: assessYieldSource(record),
+        market_risk: assessMarketRisk(record),
+        // v1.3 - additive. governance is `unknown` for non-contracts / undetermined
+        // upgradeability; redemption_history is `unknown` off-coverage.
+        governance: assessGovernance(record),
+        redemption_history: assessRedemptionHistory(record),
     };
 
     // Lowest confidence among dimensions actually assessed. An `unknown`
@@ -40,4 +52,4 @@ export function computeAssessment(record: NormalizedAssetRecord): Assessment {
     };
 }
 
-export { assessBacking, assessRedemption, assessAccess, assessStructure };
+export { assessBacking, assessRedemption, assessAccess, assessStructure, assessYieldSource, assessMarketRisk, assessGovernance, assessRedemptionHistory };

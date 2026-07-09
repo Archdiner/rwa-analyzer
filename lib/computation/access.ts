@@ -2,7 +2,7 @@
 // Access & eligibility (spec §5.3)
 // ---------------------------------------------------------------------------
 // "Can you even touch it?" A red here is an ELIGIBILITY restriction, not a
-// danger signal — the reason wording makes that explicit so it doesn't muddy
+// danger signal - the reason wording makes that explicit so it doesn't muddy
 // the risk read. The UI styles access-red distinctly from a backing/structure
 // red.
 // ---------------------------------------------------------------------------

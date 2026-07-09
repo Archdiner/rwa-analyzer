@@ -1,47 +1,24 @@
 # Integrations
 
-One engine, three doors. Same verdict whether you hit HTTP, the CLI, or MCP.
+The engine's verdict is served identically to agents and humans through one pure
+function, `toAgentVerdict` (`lib/agent/verdict.ts`), exposed over three surfaces:
 
-Under the hood it's always `toAgentVerdict` in `lib/agent/verdict.ts`. There is **no `safe: true` boolean** (we checked twice). Agents need to read `tier`, `confidence`, `freshness`, and whatever lands in `caveats`. Together. Like a responsible adult.
-
-### How a green is earned (three lanes)
-
-Three doors in, but a green `tier: verified_backed` only comes out through one of three evidence lanes, and the verdict always tells you which one. In descending order of how much you have to trust a human:
-
-1. **Regulator filing** (EDGAR N-MFP, for registered funds): independence 5, the only lane that reaches `verified` green. BENJI rides this one.
-2. **On-chain reconstruction** (reserves read straight off chain): `verified` too, but only when the reserve wallet is actually published and attributable. Often it isn't.
-3. **Auditor attestation** (Lane C, a CPA/administrator PDF): independence 4, green-capable but capped at `auto`, never `verified`. A visibly lesser cell, and the number *still* has to reconcile against supply × NAV before it counts.
-
-No lane skips the arithmetic. If nothing reconciles, you get an honest `unverifiable`, not a hopeful green. `unverifiable` is not "unsafe", and a missing red flag is not a green light. Read `meaning` + `trust_boundary` + `caveats` and let the human decide.
-
-## Surfaces
-
-| Surface | Entry | Install |
+| Surface | Entry point | Install |
 | --- | --- | --- |
-| **HTTP** | `GET /api/verify?asset={symbol\|chainId:address}` | Live at `https://rwa-analyzer.vercel.app` |
-| **CLI** | `rwa-verify <asset>` | `npx -y -p @archdiner/rwa-verify rwa-verify OUSG` |
-| **MCP** | stdio tools (below) | `npx -y -p @archdiner/rwa-verify rwa-verify-mcp` |
+| HTTP | `GET /api/verify?asset={symbol\|chainId:address}` | Live at `https://rwa-analyzer.vercel.app` |
+| CLI | `rwa-verify <asset>` | `npx -y -p @archdiner/rwa-verify rwa-verify OUSG` |
+| MCP | tools `check_asset_backing`, `list_verified_assets` | `npx -y -p @archdiner/rwa-verify rwa-verify-mcp` |
 
-### MCP tools
+The contract has **no boolean `safe` flag**. Every read is multi-axis and
+un-collapsible: `tier` × `confidence` × `freshness` for backing, plus a generic
+`dimensions` map that agents can reason over.
 
-| Tool | Input | Returns |
-| --- | --- | --- |
-| `check_asset_backing` | `asset`: ticker or `{chainId}:{address}` | Plain-English summary + full `AgentVerdict` JSON in `structuredContent` |
-| `list_verified_assets` | (none) | Assets we know about, with current backing tier/confidence |
+## MCP setup
 
-## Environment
+The MCP server and CLI ship as the `@archdiner/rwa-verify` npm package. No clone
+or local secrets are required when pointing at the hosted API.
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `RWA_API_BASE` | `https://rwa-analyzer.vercel.app` | Point CLI/MCP at prod, or `http://localhost:3000` if you're running the app yourself |
-
-No API keys needed for CLI/MCP when you use the hosted API. Seriously. We meant it.
-
-## MCP configuration by client
-
-### Claude Code (one command, no clone)
-
-Paste this into your terminal and you're done:
+Claude Code (one command):
 
 ```bash
 claude mcp add rwa-backing-verifier \
@@ -49,17 +26,7 @@ claude mcp add rwa-backing-verifier \
   -- npx -y -p @archdiner/rwa-verify@latest rwa-verify-mcp
 ```
 
-Prefer to let the agent do it? Paste this into a Claude Code chat instead:
-
-> Add an MCP server named `rwa-backing-verifier` that runs `npx -y -p @archdiner/rwa-verify@latest rwa-verify-mcp` with env `RWA_API_BASE=https://rwa-analyzer.vercel.app`, then call `list_verified_assets` so I know it's live.
-
-Either way, ask it to `check_asset_backing OUSG` to confirm the wiring.
-
-### Cursor (you cloned this repo)
-
-`.cursor/mcp.json` is already here. It runs `npm run mcp` from the project root. Open Cursor, enable the server, go bother an agent about OUSG.
-
-### Cursor / Claude Desktop / Windsurf (published npm package)
+Other MCP clients add the equivalent to their config:
 
 ```json
 {
@@ -67,128 +34,97 @@ Either way, ask it to `check_asset_backing OUSG` to confirm the wiring.
     "rwa-backing-verifier": {
       "command": "npx",
       "args": ["-y", "-p", "@archdiner/rwa-verify@latest", "rwa-verify-mcp"],
-      "env": {
-        "RWA_API_BASE": "https://rwa-analyzer.vercel.app"
-      }
+      "env": { "RWA_API_BASE": "https://rwa-analyzer.vercel.app" }
     }
   }
 }
 ```
 
-**Where to put it:**
-- Cursor: `~/.cursor/mcp.json` or `.cursor/mcp.json`
-- Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windsurf: `~/.codeium/windsurf/mcp_config.json`
-- Claude Code: `.mcp.json` or `claude mcp add`
+VS Code uses `"servers"` with `"type": "stdio"` instead of `"mcpServers"`.
+Per-client config file paths are listed in the package README
+(`packages/rwa-verify/README.md`). Cloned the repo? `.cursor/mcp.json` and
+`.vscode/mcp.json` are preconfigured to run `npm run mcp`.
 
-### VS Code + GitHub Copilot
+### How a green is earned (three lanes)
 
-VS Code is special. It wants `"servers"` instead of `"mcpServers"`, and each entry needs `"type": "stdio"`. Because of course it does.
+A green `tier: verified_backed` is reachable through three evidence lanes, in
+descending order of independence, and the verdict always names which one:
 
-```json
-{
-  "servers": {
-    "rwa-backing-verifier": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "-p", "@archdiner/rwa-verify@latest", "rwa-verify-mcp"],
-      "env": {
-        "RWA_API_BASE": "https://rwa-analyzer.vercel.app"
-      }
-    }
-  }
-}
-```
+1. **Regulator filing** (EDGAR N-MFP, registered funds): independence 5, the only
+   lane that reaches `verified` green. BENJI uses this lane.
+2. **On-chain reconstruction** (reserves read directly on-chain): `verified`, but
+   only when the reserve wallet is published and attributable.
+3. **Auditor attestation** (Lane C, a CPA/administrator PDF): independence 4,
+   green-capable but capped at `auto`, never `verified`.
 
-Drop that in `.vscode/mcp.json`, or open **MCP: Open User Configuration** and paste it there.
+No lane bypasses the arithmetic: green still requires the supply × NAV
+reconciliation and a verbatim-substring citation. Where nothing reconciles, the
+verdict is an honest `unverifiable`, which is not a safety judgment.
 
-## CLI examples
+## Dimensions
 
-```bash
-# Published package (no clone, no shame)
-npx -y -p @archdiner/rwa-verify rwa-verify OUSG
-npx -y -p @archdiner/rwa-verify rwa-verify BENJI
-npx -y -p @archdiner/rwa-verify rwa-verify 1:0x7712c34205737192402172409a8f7ccef8aa2aec
+`AgentVerdict.dimensions` is a map keyed by `DimensionKey`. Each entry carries
+`{ flag, confidence, reason, sources }`. `flag` is one of `green | amber | red |
+unknown`; `unknown` is a first-class outcome, never an error.
 
-# From a cloned repo (we see you, contributor)
-npm run verify -- OUSG
-RWA_API_BASE=http://localhost:3000 npm run verify -- BENJI
-```
+| Key | What it reads | Notes |
+| --- | --- | --- |
+| `backing` | Reserve evidence vs. supply×NAV | The original green path (EDGAR, attestation, oracle PoR). |
+| `redemption` | Exit speed / caps | From issuer docs. |
+| `access` | KYC / eligibility gating | On-chain restriction + jurisdiction. |
+| `structure` | Legal wrapper / issuer | From issuer docs. |
+| `yield_source` | **On-chain yield decomposition (v1.2)** | Organic borrow interest vs. reward emissions; source kind; trust boundary. |
+| `market_risk` | **On-chain reserve risk (v1.2)** | Bad debt, utilization, collateralization buffer, caps, reserve state, oracle. |
+| `governance` | **On-chain control (v1.3)** | Upgradeability + who controls it (EOA / multisig / timelock). "Who can change or seize this?" |
+| `redemption_history` | **Redemption-restriction track record (v1.3)** | Live pause state, N-MFP liquidity-fee history, curated incident registry. "Has getting out ever been blocked?" |
 
-Exit codes do **not** tell you if backing is good. Read the verdict. Don't `if (exitCode === 0) { yoloDeposit() }`. Please.
+### v1.2: `yield_source` and `market_risk`
 
-## HTTP examples
+Both are computed deterministically from **on-chain reads** (Aave v3 reserves
+today; the shape generalizes to other lending markets). They are **additive**:
 
-```bash
-curl -s "https://rwa-analyzer.vercel.app/api/verify?asset=OUSG" | jq .
-curl -s "https://rwa-analyzer.vercel.app/api/universe" | jq '.data.universe[].symbol'
-```
+- **`unknown` for any non-lending asset.** An asset with no on-chain yield/risk
+  data (every current RWA flagship) reports `unknown` for both, and because
+  `overall_confidence` excludes `unknown` dimensions, existing verdicts do not
+  change. The web card renders these two rows **only** when data is present.
+- **Green rests only on an on-chain read**, never a safety guarantee. For
+  `yield_source`, green means the organic (borrow-interest) rate is a `verified`
+  on-chain read and the dominant share of the yield; an aggregator-sourced
+  reward figure is `auto` and can never lift a green. For `market_risk`, green
+  means no critical signal and no unreadable material signal — a read of the
+  reserve's state, **not** a per-borrower solvency proof.
+- **Honest `unknown` is preserved.** A signal that cannot be derived (e.g. a
+  bad-debt accessor absent on the running contract version, or reward emissions
+  that cannot be quantified) is `unknown`, never assumed benign.
+- **Off-chain risk is explicitly deferred.** Audit coverage, exploit history,
+  and governance/admin-key/upgradeability risk require off-chain sources and are
+  surfaced as a scope caveat in `market_risk.reason`, not silently omitted. A
+  green `market_risk` is scoped to **on-chain** risk only.
+- **Freshness and anti-laundering compose.** A stale on-chain read demotes the
+  flag; an unverified underlying caps the flag at its own verification ceiling
+  ("you cannot be safer than the asset you lent").
 
-Response shape (abbreviated):
+Coverage is gated by a human-verified registry (`aave-registry.ts`), mirroring
+the EDGAR/attestation discipline: no reserve is read until its addresses are
+confirmed on-chain and recorded with provenance.
 
-```json
-{
-  "success": true,
-  "data": {
-    "asset": { "asset_id": "...", "symbol": "OUSG", "name": "...", "issuer_name": "..." },
-    "backing": {
-      "tier": "unverifiable",
-      "confidence": "verified",
-      "freshness": null,
-      "meaning": "...",
-      "trust_boundary": null,
-      "caveats": ["..."]
-    },
-    "dimensions": { "backing": { "flag": "unknown", "confidence": "verified", "reason": "...", "sources": [] } },
-    "evidence": [],
-    "disclaimer": "..."
-  }
-}
-```
+### v1.3: `governance` and `redemption_history`
 
-## Agent guard (JavaScript)
-
-A minimal example you can steal:
-
-```javascript
-const BASE = process.env.RWA_API_BASE ?? "https://rwa-analyzer.vercel.app";
-
-export async function verifyBacking(asset) {
-  const res = await fetch(`${BASE}/api/verify?asset=${encodeURIComponent(asset)}`);
-  const json = await res.json();
-  if (!res.ok || !json.success) throw new Error(json.error ?? `HTTP ${res.status}`);
-  return json.data;
-}
-
-/** Example policy: only hard-block on explicit reconciliation failure. */
-export function shouldBlockDeposit(verdict) {
-  if (verdict.backing.tier === "does_not_reconcile") return { block: true, reason: verdict.backing.meaning };
-  if (verdict.backing.caveats?.length) return { block: false, warn: verdict.backing.caveats };
-  return { block: false };
-}
-```
-
-Show the user `meaning`, `trust_boundary`, and `caveats`. Don't summarize as "looks safe to me, boss."
-
-## Local full stack
-
-Only needed if you want to run ingestion and scoring yourself. MCP/CLI against the hosted API skip all of this.
-
-```bash
-cp .env.example .env.local   # Supabase + optional RPC/OpenAI
-npm install && npm run dev   # http://localhost:3000
-RWA_API_BASE=http://localhost:3000 npm run verify -- BENJI
-```
-
-More context: [ARCHITECTURE.md](./ARCHITECTURE.md), [METHODOLOGY.md](./METHODOLOGY.md).
-
-## Publishing the npm package
-
-For maintainers (that's probably you if you're reading this section):
-
-```bash
-npm run build:verify
-cd packages/rwa-verify && npm publish --access public
-```
-
-You'll need `npm login` and the `@archdiner` scope. No scope? Rename the package in `packages/rwa-verify/package.json` before your first publish. Future you will thank present you.
+- **`governance` is registry-*optional*.** It reads the asset's own contract
+  (EIP-1967 proxy slots + standard proxy selectors) and classifies the upgrade
+  authority (EOA / Gnosis Safe m-of-n / `TimelockController`), so it reaches the
+  long tail. An optional label registry only enriches `admin_label`. A green
+  rests on *positively-detected* safe control (immutable, or upgradeable behind a
+  timelock / healthy multisig); a single EOA that can upgrade is red. Crucially,
+  **absence of proxy markers is not proof of immutability** — upgradeability then
+  reads `unknown`, never a false "immutable" green.
+- **`redemption_history` is three honestly-tiered signals, never conflated:**
+  a live on-chain pause read (`verified`), the registered-MMF N-MFP liquidity-fee
+  flag/events (`verified` structured — regulatory redemption *gates* are
+  structurally dead for MMFs post-Oct-2023, so this tracks *fees*), and a curated
+  incident registry (`auto` + citation, regime-tagged so a non-traded-REIT
+  repurchase cap is never shown as a '40-Act suspension). A green is an **absence
+  claim, freshness-scoped** ("no restriction on record as of {date}"), resting
+  only on verified reads; curated incidents only ever demote. Off coverage
+  (no pause mechanism, filing, or incident) the dimension is `unknown`, never a
+  blind green. The web card renders both rows only when determined.

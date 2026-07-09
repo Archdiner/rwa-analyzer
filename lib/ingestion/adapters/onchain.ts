@@ -6,7 +6,7 @@
 // an RWA implies KYC/eligibility gating. Everything here is `verified` because
 // it is a direct chain read anyone can reproduce.
 //
-// Holder count is intentionally NOT read here — it requires an indexer, not an
+// Holder count is intentionally NOT read here - it requires an indexer, not an
 // RPC. Reference adapters may supply it.
 // ---------------------------------------------------------------------------
 
@@ -64,7 +64,7 @@ export async function onchainAdapter(asset: ParsedAssetId): Promise<AdapterResul
     try {
         const { name, symbol, decimals, totalSupply } = await readErc20(client, address);
 
-        // A contract with no readable supply is not a usable token — bail so the
+        // A contract with no readable supply is not a usable token - bail so the
         // caller can report "does not resolve" rather than a phantom record.
         if (totalSupply == null || decimals == null) return EMPTY;
 

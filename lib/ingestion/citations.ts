@@ -1,10 +1,10 @@
 // ---------------------------------------------------------------------------
-// Citation validation — the integrity spine
+// Citation validation - the integrity spine
 // ---------------------------------------------------------------------------
 // LLMs hallucinate citations as readily as facts. A "required citation" means
 // nothing until it is checked. Every llm_extracted field must carry a text_span
 // that is a verbatim substring of the fetched source document. If it is not,
-// the field is demoted to `unverifiable` — its value may still be shown, but it
+// the field is demoted to `unverifiable` - its value may still be shown, but it
 // never wears a trusted badge and computation treats it as missing.
 // ---------------------------------------------------------------------------
 

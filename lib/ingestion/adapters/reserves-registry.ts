@@ -2,10 +2,10 @@
 // On-chain reserve-wallet registry
 // ---------------------------------------------------------------------------
 // On-chain reconstruction reads an issuer's reserve wallet directly and values
-// what it holds — no PDF, no feed, no one's cooperation. But it only works when
+// what it holds - no PDF, no feed, no one's cooperation. But it only works when
 // the reserve wallet is PUBLISHED and ATTRIBUTABLE to the asset. This registry
 // holds only wallets verified against a primary source (issuer docs / a labelled
-// explorer). An unverified wallet is never asserted — asserting the wrong wallet
+// explorer). An unverified wallet is never asserted - asserting the wrong wallet
 // would manufacture a false green, the worst-case failure.
 //
 // ANTI-LAUNDERING: reconstruction that holds another tokenized instrument can be
@@ -19,11 +19,11 @@
 //   address (OUSG token, InstantManager, Coinbase Prime ousg.eth, IDRegistry,
 //   recipients) holds ZERO BUIDL. OUSG's BUIDL sits in segregated accounts at
 //   third-party custodians (Clear Street / Coinbase Custody) for the Ondo I LP
-//   SPV — addresses Ondo does not attribute publicly. The reserve PROOF is
+//   SPV - addresses Ondo does not attribute publicly. The reserve PROOF is
 //   Ankura Trust's OFF-CHAIN daily attestation, not an on-chain balance. So
 //   on-chain reconstruction resolves 0% of OUSG's backing to an attributable
 //   wallet; its honest verdict is a WEAK amber resting on an admin attestation
-//   (once parsed), and its real green path is attestation/EDGAR — NOT this
+//   (once parsed), and its real green path is attestation/EDGAR - NOT this
 //   adapter. Do not add a top-BUIDL-holder address here on a hunch: none of them
 //   are attributable to OUSG from published data.
 // ───────────────────────────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ export interface ReserveWalletEntry {
 }
 
 /**
- * Keyed by canonical asset_id. Intentionally EMPTY for the flagship set — none
+ * Keyed by canonical asset_id. Intentionally EMPTY for the flagship set - none
  * of them publish an attributable on-chain reserve wallet (see the OUSG finding
  * above; the same custody pattern holds for USDY, USYC, BENJI). Entries are
  * added only after verifying the wallet holds the reserves and is attributable

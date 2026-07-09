@@ -5,7 +5,7 @@
 // disagreement between sources it does NOT silently pick a winner: it records
 // the conflict and DEMOTES the surviving field's confidence one step (a
 // supply-vs-reserves-style mismatch is itself a risk signal Module 2 reads).
-// Reconciliation only ever demotes confidence — never promotes.
+// Reconciliation only ever demotes confidence - never promotes.
 // ---------------------------------------------------------------------------
 
 import {
@@ -29,7 +29,7 @@ export interface Contribution {
     identifiers?: Partial<AssetIdentifiers>;
 }
 
-const NUMERIC_TOLERANCE = 0.005; // 0.5% — same-field values this close "agree"
+const NUMERIC_TOLERANCE = 0.005; // 0.5% - same-field values this close "agree"
 
 function valuesAgree(a: FieldValue, b: FieldValue): boolean {
     if (typeof a === "number" && typeof b === "number") {
@@ -91,7 +91,7 @@ export function reconcileFields(contributions: Contribution[]): {
                 values: contributed.map((f) => f.value),
                 sources: contributed.map((f) => f.source),
             });
-            // Demote the surviving field — a source disagreement is a real signal.
+            // Demote the surviving field - a source disagreement is a real signal.
             fields[name] = { ...winner, confidence: demoteConfidence(winner.confidence) };
         } else {
             fields[name] = winner;

@@ -1,11 +1,7 @@
 // ---------------------------------------------------------------------------
-// GET /api/verify?asset={symbol | chainId:address} — the agent verification tool
+// GET /api/verify?asset={symbol | chainId:address}
 // ---------------------------------------------------------------------------
-// The primary artifact of this project: an honest, machine-readable backing
-// verifiability read that any caller (agent, CLI, another service) can call
-// before it commits money to a tokenized asset. The web card, the CLI, and the
-// MCP server are all clients of THIS. It returns the two-axis AgentVerdict whose
-// caveat is load-bearing by construction (see lib/agent/verdict.ts).
+// Returns the AgentVerdict JSON contract shared by the web UI, CLI, and MCP server.
 // ---------------------------------------------------------------------------
 
 import { NextRequest, after } from "next/server";

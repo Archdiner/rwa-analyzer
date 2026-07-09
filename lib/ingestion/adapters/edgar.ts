@@ -4,12 +4,12 @@
 // For a registered '40-Act money-market fund, fetches the latest N-MFP monthly
 // portfolio filing and emits (1) a nav field from the market-based shadow NAV
 // and (2) one regulator_filing EvidenceItem. This is the ONLY green path for the
-// registered-fund (BENJI) class — see edgar-registry.ts for the narrow scope.
+// registered-fund (BENJI) class - see edgar-registry.ts for the narrow scope.
 //
 // Two integrity guards:
 //   - Only registered assets in EDGAR_FUNDS are queried (no guessing a CIK).
 //   - The fetched filing's seriesId MUST match the registry entry, or nothing is
-//     emitted — attributing another fund's filing would manufacture a green.
+//     emitted - attributing another fund's filing would manufacture a green.
 // ---------------------------------------------------------------------------
 
 import { field, type AdapterResult, EMPTY } from "@/lib/ingestion/adapters/base";
@@ -17,7 +17,8 @@ import type { ParsedAssetId } from "@/lib/chains";
 import { formatAssetId as buildAssetId } from "@/lib/chains";
 import { secUserAgent } from "@/lib/env";
 import { lookupEdgarFund } from "@/lib/ingestion/adapters/edgar-registry";
-import { parseNmfp, navFromFiling, buildRegulatorEvidence } from "@/lib/ingestion/edgar";
+import { parseNmfp, navFromFiling, buildRegulatorEvidence, buildFeeEvents } from "@/lib/ingestion/edgar";
+import { buildFeeContribution } from "@/lib/ingestion/redemption-history";
 
 interface RecentFilings {
     form: string[];
@@ -77,6 +78,14 @@ export async function edgarAdapter(asset: ParsedAssetId): Promise<AdapterResult>
         const result: AdapterResult = {
             fields: {},
             backing_evidence: [buildRegulatorEvidence(data, source)],
+            // v1.3: the registered-MMF redemption-restriction signal — the latest
+            // liquidity-fee flag + any fee events. Merged with the on-chain
+            // pause/incident contribution by the orchestrator.
+            redemption_history_data: buildFeeContribution(
+                data.liquidityFeeApplied,
+                buildFeeEvents(data, source),
+                data.reportDate || new Date().toISOString(),
+            ),
         };
 
         const navValue = navFromFiling(data);

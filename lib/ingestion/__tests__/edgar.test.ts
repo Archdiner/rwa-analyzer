@@ -9,13 +9,14 @@ import {
     navFromFiling,
     isAllGovernment,
     buildRegulatorEvidence,
+    buildFeeEvents,
 } from "@/lib/ingestion/edgar";
 import { assessBacking } from "@/lib/computation/backing";
 import { f, rec } from "@/lib/computation/__tests__/helpers";
 
 const XML = readFileSync(join(__dirname, "fixtures/benji-nmfp3.xml"), "utf8");
 
-describe("parseNmfp — real BENJI/FOBXX N-MFP3 filing", () => {
+describe("parseNmfp - real BENJI/FOBXX N-MFP3 filing", () => {
     const data = parseNmfp(XML)!;
 
     it("parses the correct fund series", () => {
@@ -40,10 +41,32 @@ describe("parseNmfp — real BENJI/FOBXX N-MFP3 filing", () => {
     });
 });
 
+describe("liquidity-fee extraction (redemption_history signal)", () => {
+    it("reads liquidityFeeFundApplyFlag = N -> no fee applied (verified structured)", () => {
+        expect(parseNmfp(XML)!.liquidityFeeApplied).toBe(false);
+    });
+
+    it("no fee applied -> no fee events (an honest 'none', not a fabricated history)", () => {
+        expect(buildFeeEvents(parseNmfp(XML)!, "src")).toEqual([]);
+    });
+
+    it("a fee-applied period emits one event stamped with the report date", () => {
+        const data = { ...parseNmfp(XML)!, liquidityFeeApplied: true };
+        const events = buildFeeEvents(data, "SEC EDGAR N-MFP (S000067043)");
+        expect(events).toHaveLength(1);
+        expect(events[0].kind).toBe("liquidity_fee");
+        expect(events[0].as_of).toBe(data.reportDate);
+    });
+
+    it("an absent flag reads null (unknown), never false", () => {
+        expect(parseNmfp("<edgarSubmission><formData><seriesLevelInfo><netAssetOfSeries>1</netAssetOfSeries><seriesId>S1</seriesId></seriesLevelInfo></formData></edgarSubmission>")?.liquidityFeeApplied ?? null).toBeNull();
+    });
+});
+
 describe("buildRegulatorEvidence", () => {
     const ev = buildRegulatorEvidence(parseNmfp(XML)!, "SEC EDGAR N-MFP (S000067043)");
 
-    it("is regulator-grade, structured, verified — no parse_confidence or citation", () => {
+    it("is regulator-grade, structured, verified - no parse_confidence or citation", () => {
         expect(ev.source_type).toBe("regulator_filing");
         expect(ev.independence).toBe(5);
         expect(ev.extraction).toBe("structured");
