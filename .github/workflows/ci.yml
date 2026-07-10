@@ -17,7 +17,11 @@ jobs:
           node-version: "20"
           cache: npm
 
-      - run: npm ci
+      # `npm install` (not `npm ci`) so npm re-resolves platform-specific optional
+      # deps: the committed lockfile was generated on macOS and omits the Linux
+      # native binaries (e.g. lightningcss-linux-x64-gnu), which `npm ci` follows
+      # strictly, leaving the build to fail on the missing .node at runtime.
+      - run: npm install --no-audit --no-fund
 
       - run: npm run lint
 
