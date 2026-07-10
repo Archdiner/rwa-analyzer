@@ -10,12 +10,29 @@ import { getSupabase, hasSupabase } from "@/lib/supabase";
 
 export type FeatureStatus = "received" | "triaged" | "rejected" | "promoted";
 
+// Open-ended by design: the intake box accepts any idea, and triage classifies
+// without forcing everything into the existing modules or rejecting ambition.
+// `scale` flags size (never a reason to discard); `themes` feed cross-suggestion
+// synthesis (Phase 2); `buildable_now` gates only the narrow auto-PR tail.
+export type TriageArea =
+    | "ingestion"
+    | "computation"
+    | "app"
+    | "new_capability"
+    | "new_direction"
+    | "meta"
+    | "unknown";
+
+export type TriageScale = "small_bounded" | "medium" | "large" | "exploratory";
+
 export interface TriageResult {
-    category: string;
-    affected_module: "ingestion" | "computation" | "app" | "unknown";
+    summary: string;
+    area: TriageArea;
+    scale: TriageScale;
     merit: string;
-    contract_fit: string;
-    dedup_of: string | null;
+    themes: string[];
+    buildable_now: boolean;
+    dedup_hint: string;
 }
 
 export interface FeatureRequest {
