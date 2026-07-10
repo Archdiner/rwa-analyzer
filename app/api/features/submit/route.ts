@@ -6,11 +6,9 @@
 import { NextRequest } from "next/server";
 import { successResponse, errorResponse, rateLimit, rateLimitedResponse, getClientIp } from "@/lib/api-utils";
 import { enqueueRequest } from "@/lib/features/store";
+import { validateSuggestion } from "@/lib/features/validation";
 
 export const dynamic = "force-dynamic";
-
-const MIN_LEN = 3;
-const MAX_LEN = 8000; // generous - big ideas welcome; this only bounds abuse
 
 export async function POST(req: NextRequest) {
     const ip = getClientIp(req);
@@ -25,9 +23,9 @@ export async function POST(req: NextRequest) {
         return errorResponse("Body must be JSON: { text: string }", 400);
     }
 
-    const text = typeof body.text === "string" ? body.text.trim() : "";
-    if (text.length < MIN_LEN) return errorResponse("Provide a suggestion in `text`.", 400);
-    if (text.length > MAX_LEN) return errorResponse(`Keep the suggestion under ${MAX_LEN} characters.`, 400);
+    const check = validateSuggestion(body.text);
+    if (!check.ok) return errorResponse(check.error ?? "Invalid suggestion.", 400);
+    const text = (body.text as string).trim();
 
     const id = await enqueueRequest(text, ip);
     if (!id) return errorResponse("Suggestions are temporarily unavailable (storage not configured).", 503);
