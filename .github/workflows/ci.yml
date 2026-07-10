@@ -17,19 +17,23 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - run: npm install --no-audit --no-fund
+      # `npm ci` (deterministic, installs devDependencies like ts-jest from the
+      # lockfile). It cannot fix the missing Linux native binaries below, but
+      # switching to `npm install` dropped ts-jest in CI - so keep ci and patch
+      # the natives separately.
+      - run: npm ci
 
       # The committed lockfile was generated on macOS and omits the Linux native
-      # binaries Tailwind v4 needs at build time; npm's optional-dep lockfile bug
-      # (npm/cli#4828) means neither `ci` nor `install` reliably fetches them.
-      # Install them explicitly, matched to the resolved package versions.
+      # binaries Tailwind v4 needs at build time (npm's optional-dep lockfile bug,
+      # npm/cli#4828). Install them explicitly, matched to the resolved versions.
+      # --no-save --no-package-lock so this doesn't perturb the ci-installed tree.
       - name: Install Linux native binaries (lightningcss / tailwind oxide)
         run: |
-          npm install --no-save --no-audit \
+          npm install --no-save --no-package-lock --no-audit \
             "lightningcss-linux-x64-gnu@$(node -p "require('lightningcss/package.json').version")"
           OXIDE_VER=$(node -p "require('@tailwindcss/oxide/package.json').version" 2>/dev/null || echo "")
           if [ -n "$OXIDE_VER" ]; then
-            npm install --no-save --no-audit "@tailwindcss/oxide-linux-x64-gnu@$OXIDE_VER"
+            npm install --no-save --no-package-lock --no-audit "@tailwindcss/oxide-linux-x64-gnu@$OXIDE_VER"
           fi
 
       - run: npm run lint
