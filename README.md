@@ -163,7 +163,8 @@ npm run seed
 | `WEB_SEARCH_API_KEY` | Issuer-doc discovery (Serper format) | Discovery uses known URLs only |
 | `SEC_USER_AGENT` | EDGAR courtesy header | Default UA is used |
 | `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Asset store | No caching |
-| `CRON_SECRET` | Daily refresh cron guard | Cron is open (set in production) |
+| `CRON_SECRET` | Refresh + feature-worker cron guard | Refresh is open; triage/cluster workers fail closed (set in production) |
+| `MAINTAINER_KEY` | Gates the maintainer-only demand view | Demand view unavailable (fails closed) |
 
 rwa.xyz has no free programmatic API. The tool works without it; qualitative data comes from the seed registry and LLM extraction of issuer disclosures.
 
@@ -173,7 +174,7 @@ rwa.xyz has no free programmatic API. The tool works without it; qualitative dat
 npm run dev      # dev server
 npm run build    # production build
 npm run lint     # eslint
-npm run test     # jest (128 tests across rule boundaries and invariants)
+npm run test     # jest (~270 tests across rule boundaries and invariants)
 npm run seed     # ingest + store flagship assets
 npm run verify   # CLI backing check
 npm run mcp      # MCP stdio server
@@ -189,7 +190,7 @@ Verified-green backing on tokenized RWAs is difficult. Flagship money funds ship
 
 ## Out of scope (v1)
 
-Smart-contract depth, secondary liquidity, duration modeling, human verification queue, portfolio tools, alerting, historical trends, accounts, public API.
+Smart-contract depth, secondary liquidity, duration modeling, human verification queue, portfolio tools, alerting, historical trends, accounts, billed SLA / API keys. The public `GET /api/verify` (rate-limited, no key) is in scope.
 
 ## Specs
 
