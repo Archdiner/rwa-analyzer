@@ -14,6 +14,17 @@ function lendingRecord(): NormalizedAssetRecord {
 }
 
 describe("v1.2 dimensions - assessment wiring", () => {
+    // Pin the clock to just after the fixture's on-chain timestamp. The Aave
+    // fixture stamps `as_of` from its fixed `lastUpdateTimestamp`, so on real time
+    // the yield-source freshness rule eventually demotes green -> amber once the
+    // fixture ages past the staleness window (a time-bomb). Pinning keeps the read
+    // fresh, testing the classification logic - not the calendar.
+    beforeAll(() => {
+        jest.useFakeTimers();
+        jest.setSystemTime(new Date((usdcFixture as { lastUpdateTimestamp: number }).lastUpdateTimestamp * 1000 + 60_000));
+    });
+    afterAll(() => jest.useRealTimers());
+
     it("a lending asset gains non-unknown yield_source and market_risk dimensions", () => {
         const a = computeAssessment(lendingRecord());
         expect(a.dimensions.yield_source).toBeDefined();
