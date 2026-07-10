@@ -14,14 +14,23 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
 
-      # `npm install` (not `npm ci`) so npm re-resolves platform-specific optional
-      # deps: the committed lockfile was generated on macOS and omits the Linux
-      # native binaries (e.g. lightningcss-linux-x64-gnu), which `npm ci` follows
-      # strictly, leaving the build to fail on the missing .node at runtime.
       - run: npm install --no-audit --no-fund
+
+      # The committed lockfile was generated on macOS and omits the Linux native
+      # binaries Tailwind v4 needs at build time; npm's optional-dep lockfile bug
+      # (npm/cli#4828) means neither `ci` nor `install` reliably fetches them.
+      # Install them explicitly, matched to the resolved package versions.
+      - name: Install Linux native binaries (lightningcss / tailwind oxide)
+        run: |
+          npm install --no-save --no-audit \
+            "lightningcss-linux-x64-gnu@$(node -p "require('lightningcss/package.json').version")"
+          OXIDE_VER=$(node -p "require('@tailwindcss/oxide/package.json').version" 2>/dev/null || echo "")
+          if [ -n "$OXIDE_VER" ]; then
+            npm install --no-save --no-audit "@tailwindcss/oxide-linux-x64-gnu@$OXIDE_VER"
+          fi
 
       - run: npm run lint
 
