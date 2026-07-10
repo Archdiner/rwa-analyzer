@@ -82,3 +82,18 @@ $$;
 -- service role, which bypasses RLS; anon/public is denied).
 alter table public.feature_requests enable row level security;
 alter table public.processing_budget enable row level security;
+
+-- Cached embedding per request (in-app cosine clustering; no pgvector for v1).
+alter table public.feature_requests add column if not exists embedding jsonb;
+
+-- Synthesized emergent directions - one per cluster. The "infer new ideas from
+-- the corpus" surface: a proposal distilled from related suggestions, ranked by
+-- how many back it. Advisory only; never triggers a build.
+create table if not exists public.feature_directions (
+    cluster_id   text primary key,
+    label        text not null,
+    synthesis    text not null,
+    member_count int  not null default 0,
+    updated_at   timestamptz not null default now()
+);
+alter table public.feature_directions enable row level security;

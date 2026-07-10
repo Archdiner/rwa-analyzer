@@ -81,3 +81,78 @@ export async function setTriage(
     const { error } = await getSupabase().from("feature_requests").update({ status, triage }).eq("id", id);
     if (error) throw error;
 }
+
+// --- Phase 2: clustering + synthesized directions --------------------------
+
+export interface ClusterRow {
+    id: string;
+    text: string; // triage summary if present, else raw_text
+    themes: string[];
+    embedding: number[] | null;
+}
+
+export interface Direction {
+    cluster_id: string;
+    label: string;
+    synthesis: string;
+    member_count: number;
+}
+
+interface RawClusterRow {
+    id: string;
+    raw_text: string;
+    triage: TriageResult | null;
+    embedding: number[] | null;
+}
+
+/** Triaged rows for clustering (uses the triage summary as the clustering text). */
+export async function triagedForClustering(limit = 500): Promise<ClusterRow[]> {
+    if (!hasSupabase()) return [];
+    const { data, error } = await getSupabase()
+        .from("feature_requests")
+        .select("id, raw_text, triage, embedding")
+        .eq("status", "triaged")
+        .order("created_at", { ascending: true })
+        .limit(limit);
+    if (error) throw error;
+    return ((data ?? []) as RawClusterRow[]).map((r) => ({
+        id: r.id,
+        text: r.triage?.summary || r.raw_text,
+        themes: r.triage?.themes ?? [],
+        embedding: r.embedding ?? null,
+    }));
+}
+
+export async function saveEmbedding(id: string, embedding: number[]): Promise<void> {
+    if (!hasSupabase()) return;
+    const { error } = await getSupabase().from("feature_requests").update({ embedding }).eq("id", id);
+    if (error) throw error;
+}
+
+export async function setCluster(id: string, clusterId: string, label: string): Promise<void> {
+    if (!hasSupabase()) return;
+    const { error } = await getSupabase()
+        .from("feature_requests")
+        .update({ cluster_id: clusterId, cluster_label: label })
+        .eq("id", id);
+    if (error) throw error;
+}
+
+export async function upsertDirection(d: Direction): Promise<void> {
+    if (!hasSupabase()) return;
+    const { error } = await getSupabase()
+        .from("feature_directions")
+        .upsert({ ...d, updated_at: new Date().toISOString() });
+    if (error) throw error;
+}
+
+/** Ranked synthesized directions for the demand view (most-wanted first). */
+export async function listDirections(): Promise<Direction[]> {
+    if (!hasSupabase()) return [];
+    const { data, error } = await getSupabase()
+        .from("feature_directions")
+        .select("cluster_id, label, synthesis, member_count")
+        .order("member_count", { ascending: false });
+    if (error) throw error;
+    return (data ?? []) as Direction[];
+}
