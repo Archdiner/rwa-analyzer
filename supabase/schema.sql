@@ -64,14 +64,21 @@ create table if not exists processing_budget (
 );
 
 -- Atomic debit: insert-or-add in a single statement so concurrent worker
--- invocations can't lose an update and overspend the cap.
-create or replace function debit_budget(p_date date, p_amount numeric)
+-- invocations can't lose an update and overspend the cap. search_path pinned
+-- empty + schema-qualified per Supabase function-security guidance.
+create or replace function public.debit_budget(p_date date, p_amount numeric)
 returns numeric
 language sql
+set search_path = ''
 as $$
-    insert into processing_budget (spend_date, spent_usd)
+    insert into public.processing_budget (spend_date, spent_usd)
     values (p_date, p_amount)
     on conflict (spend_date)
-    do update set spent_usd = processing_budget.spent_usd + excluded.spent_usd
+    do update set spent_usd = public.processing_budget.spent_usd + excluded.spent_usd
     returning spent_usd;
 $$;
+
+-- Match the existing tables' posture: RLS on, no policies (the app uses the
+-- service role, which bypasses RLS; anon/public is denied).
+alter table public.feature_requests enable row level security;
+alter table public.processing_budget enable row level security;
