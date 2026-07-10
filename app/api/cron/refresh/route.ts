@@ -19,8 +19,16 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const BATCH = 15; // cap RPC/API load per run
 
 export async function GET(req: NextRequest) {
+    // Fail CLOSED: an unset secret must not leave this cost-bearing endpoint
+    // publicly callable. Vercel Cron sends `Authorization: Bearer $CRON_SECRET`
+    // automatically when the env var is set, so a correctly-configured deploy
+    // still passes; a misconfigured one is refused rather than exposed.
     const secret = cronSecret();
-    if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
+    if (!secret) {
+        console.error("[cron] CRON_SECRET is not configured; refusing to run (fail-closed).");
+        return NextResponse.json({ error: "Cron not configured" }, { status: 503 });
+    }
+    if (req.headers.get("authorization") !== `Bearer ${secret}`) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

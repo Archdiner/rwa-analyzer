@@ -9,7 +9,17 @@ import { f, ev, rec } from "./helpers";
 import usdcFixture from "@/lib/ingestion/__tests__/fixtures/aave-usdc-reserve.json";
 
 function lendingRecord(): NormalizedAssetRecord {
-    const { yield_source_data, market_risk_data } = shapeAaveReserve(usdcFixture as unknown as RawReserveReads);
+    // Stamp the fixture as freshly read (as of now) so the freshness axis stays
+    // `live` and the organic-only green is asserted deterministically. Without
+    // this, the fixture's frozen `lastUpdateTimestamp` ages past the on-chain
+    // cadence in wall-clock time and the (correct) staleness demotion flips the
+    // flag to amber - a non-hermetic test that rots. We are exercising the
+    // scoring wiring here, not the freshness gradient (covered in freshness.test).
+    const fresh: RawReserveReads = {
+        ...(usdcFixture as unknown as RawReserveReads),
+        lastUpdateTimestamp: Math.floor(Date.now() / 1000),
+    };
+    const { yield_source_data, market_risk_data } = shapeAaveReserve(fresh);
     return { ...rec(), yield_source_data, market_risk_data };
 }
 

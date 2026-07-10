@@ -90,7 +90,7 @@ interface LlamaPool {
 /** Keyless DeFiLlama cross-ref for Aave v3 reward APY. auto, never verified. */
 async function defillamaRewardApy(underlying: Address, chainId: number): Promise<number | null> {
     try {
-        const res = await fetch("https://yields.llama.fi/pools", { headers: { accept: "application/json" } });
+        const res = await fetch("https://yields.llama.fi/pools", { headers: { accept: "application/json" }, signal: AbortSignal.timeout(15_000) });
         if (!res.ok) return null;
         const json = (await res.json()) as { data?: LlamaPool[] };
         const chain = chainId === 1 ? "Ethereum" : null;

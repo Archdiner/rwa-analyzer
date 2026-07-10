@@ -73,7 +73,9 @@ export function getClient(chainId: number): PublicClient | null {
 
     const client = createPublicClient({
         chain: CHAINS[chainId].chain,
-        transport: http(url),
+        // Bound each RPC call so a slow/unresponsive provider cannot hang a
+        // serverless invocation (and run up billed execution time).
+        transport: http(url, { timeout: 10_000 }),
     }) as PublicClient;
 
     clientCache.set(chainId, client);

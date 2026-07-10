@@ -9,15 +9,17 @@
 
 import OpenAI from "openai";
 import { openAiKey } from "@/lib/env";
+import { reserveExternalCall } from "@/lib/budget";
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const REQUEST_TIMEOUT_MS = 30_000;
 
 let client: OpenAI | null = null;
 
 function getClient(): OpenAI | null {
     const apiKey = openAiKey();
     if (!apiKey) return null;
-    if (!client) client = new OpenAI({ apiKey });
+    if (!client) client = new OpenAI({ apiKey, timeout: REQUEST_TIMEOUT_MS, maxRetries: 2 });
     return client;
 }
 
@@ -40,6 +42,13 @@ export interface ExtractArgs {
 export async function extractJson<T>({ system, user, schema, schemaName }: ExtractArgs): Promise<T | null> {
     const openai = getClient();
     if (!openai) return null;
+
+    // Cost circuit-breaker: skip (degrade to unverifiable) once the daily cap is
+    // reached, so no traffic pattern can drive unbounded OpenAI spend.
+    if (!(await reserveExternalCall("openai"))) {
+        console.warn("[openai] daily budget reached; skipping extraction.");
+        return null;
+    }
 
     try {
         const completion = await openai.chat.completions.create({

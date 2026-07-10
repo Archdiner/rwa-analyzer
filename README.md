@@ -6,6 +6,8 @@ Machine-readable backing verification for tokenized real-world assets. Given an 
 
 This tool rates assets on public facts. It does not hold funds, act as a rating agency, or provide financial advice.
 
+> **Status: public beta.** The verdict engine is deterministic and covered by 300 tests. Coverage is intentionally narrow and honest: of the seven seeded flagship assets, exactly one (**BENJI**) currently reaches a `verified_backed` / `verified` green via its SEC EDGAR filing; the rest resolve to `partially_verified`, `does_not_reconcile`, or an honest `unverifiable`. That is the design — the tool says "unknown" rather than manufacture a green. Coverage grows by adding *verified sources* (regulator filings, proven reserve wallets, registered attestations), not by inflating the asset count. Treat green/`verified` verdicts as machine-checked and every other verdict as a well-labeled starting point, not a recommendation.
+
 ## What it does
 
 The core pipeline is: asset in, structured verdict out. The response is intentionally **not** a boolean. There is no `safe: true`.
@@ -173,7 +175,7 @@ rwa.xyz has no free programmatic API. The tool works without it; qualitative dat
 npm run dev      # dev server
 npm run build    # production build
 npm run lint     # eslint
-npm run test     # jest (128 tests across rule boundaries and invariants)
+npm run test     # jest (300 tests across rule boundaries and invariants)
 npm run seed     # ingest + store flagship assets
 npm run verify   # CLI backing check
 npm run mcp      # MCP stdio server

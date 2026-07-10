@@ -27,7 +27,7 @@ interface RecentFilings {
 }
 
 async function fetchJson<T>(url: string): Promise<T | null> {
-    const res = await fetch(url, { headers: { "User-Agent": secUserAgent(), accept: "application/json" } });
+    const res = await fetch(url, { headers: { "User-Agent": secUserAgent(), accept: "application/json" }, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) throw new Error(`edgar ${res.status} ${url}`);
     return (await res.json()) as T;
 }
@@ -59,7 +59,7 @@ export async function edgarAdapter(asset: ParsedAssetId): Promise<AdapterResult>
 
         const noDashes = accession.replace(/-/g, "");
         const xmlUrl = `https://www.sec.gov/Archives/edgar/data/${entry.cik}/${noDashes}/primary_doc.xml`;
-        const res = await fetch(xmlUrl, { headers: { "User-Agent": secUserAgent() } });
+        const res = await fetch(xmlUrl, { headers: { "User-Agent": secUserAgent() }, signal: AbortSignal.timeout(15_000) });
         if (!res.ok) throw new Error(`edgar xml ${res.status}`);
         const xml = await res.text();
 

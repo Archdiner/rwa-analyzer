@@ -68,7 +68,7 @@ let cache: { at: number; pools: LlamaPool[] } | null = null;
 
 async function getPools(): Promise<LlamaPool[]> {
     if (cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.pools;
-    const res = await fetch(POOLS_URL, { headers: { accept: "application/json" } });
+    const res = await fetch(POOLS_URL, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) throw new Error(`defillama ${res.status}`);
     const json = (await res.json()) as { data?: LlamaPool[] };
     const pools = json.data ?? [];

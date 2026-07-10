@@ -93,7 +93,10 @@ export async function searchIndex(query: string, limit = 8): Promise<SearchHit[]
     if (!hasSupabase()) return [];
     const supabase = getSupabase();
 
-    const q = query.trim();
+    // PostgREST's `.or()` takes a filter STRING, so raw `q` could inject
+    // logic-tree syntax (commas, parens, dots). Tickers/names are alphanumeric,
+    // so restrict to a safe charset and bound the length before interpolating.
+    const q = query.trim().replace(/[^a-zA-Z0-9 .\-]/g, "").slice(0, 64);
     if (!q) return [];
 
     const { data } = await supabase

@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 
 import { webSearchKey } from "@/lib/env";
+import { reserveExternalCall } from "@/lib/budget";
 
 export interface IssuerDoc {
     url: string;
@@ -18,6 +19,32 @@ export interface IssuerDoc {
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB cap - prospectuses are large but bounded
 const MAX_TEXT_CHARS = 120_000; // keep the extraction prompt bounded
+const FETCH_TIMEOUT_MS = 15_000; // no unbounded hangs on a slow upstream
+
+/**
+ * Guards the server-side fetcher against SSRF: https only, no loopback /
+ * private / link-local / cloud-metadata hosts. The URL originates from seed data
+ * or a web-search result (not raw user input), so this is defense-in-depth.
+ * Note: `fetch` still follows redirects internally; this validates the initial
+ * hop. A hardened deploy behind an egress proxy remains the belt-and-suspenders.
+ */
+function isPubliclyFetchable(raw: string): boolean {
+    let u: URL;
+    try {
+        u = new URL(raw);
+    } catch {
+        return false;
+    }
+    if (u.protocol !== "https:") return false;
+    const host = u.hostname.toLowerCase();
+    if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal")) return false;
+    if (host === "metadata.google.internal" || host === "169.254.169.254") return false;
+    // Literal private / loopback / link-local IPv4 ranges.
+    if (/^(10\.|127\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) return false;
+    // IPv6 loopback / unique-local / link-local.
+    if (host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80")) return false;
+    return true;
+}
 
 /** Strips HTML to rough text. Good enough to cite against; not a renderer. */
 function htmlToText(html: string): string {
@@ -42,10 +69,15 @@ async function pdfToText(buf: ArrayBuffer): Promise<string> {
 
 /** Fetches a URL and returns its text (PDF or HTML), or null on failure. */
 export async function fetchDocText(url: string): Promise<string | null> {
+    if (!isPubliclyFetchable(url)) {
+        console.error(`[issuer-docs] refusing to fetch non-public URL: ${url}`);
+        return null;
+    }
     try {
         const res = await fetch(url, {
             headers: { "user-agent": "rwa-analyzer/1.0 (+disclosure-reader)" },
             redirect: "follow",
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
         if (!res.ok) return null;
 
@@ -69,11 +101,18 @@ async function discoverDocUrl(name: string, symbol: string): Promise<string | nu
     const key = webSearchKey();
     if (!key) return null;
 
+    // Cost circuit-breaker: web search is a paid call; respect the daily cap.
+    if (!(await reserveExternalCall("web_search"))) {
+        console.warn("[issuer-docs] daily web-search budget reached; skipping discovery.");
+        return null;
+    }
+
     try {
         const res = await fetch("https://google.serper.dev/search", {
             method: "POST",
             headers: { "X-API-KEY": key, "Content-Type": "application/json" },
             body: JSON.stringify({ q: `${name} ${symbol} prospectus OR terms OR offering filetype:pdf` }),
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
         if (!res.ok) return null;
 

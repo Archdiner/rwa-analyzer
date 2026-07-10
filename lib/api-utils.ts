@@ -2,8 +2,11 @@
 // API route utilities
 // ---------------------------------------------------------------------------
 // Standard JSON responses + an in-memory token-bucket rate limiter. The limiter
-// is process-local (correct for a single-instance prototype); swap for a
-// Redis-backed one before horizontal scaling.
+// is process-local, so on serverless it is a best-effort per-instance throttle,
+// not a global one - it smooths bursts but does not bound total spend on its
+// own. The hard cost ceiling is the global daily budget in `lib/budget.ts`
+// (durable in Postgres), which gates every paid external call. For a strict
+// global request limit, front this with a shared store (e.g. Upstash Redis).
 // ---------------------------------------------------------------------------
 
 import { NextResponse } from "next/server";
@@ -77,7 +80,13 @@ export function rateLimitedResponse(): NextResponse {
 }
 
 export function getClientIp(request: Request): string {
+    // Prefer `x-real-ip`: on Vercel this is set by the platform edge and is not
+    // client-spoofable, unlike the left-most `x-forwarded-for` hop (which the
+    // caller controls and could rotate to defeat per-IP limiting). Fall back to
+    // the first XFF hop only where `x-real-ip` is absent (e.g. local dev).
+    const realIp = request.headers.get("x-real-ip");
+    if (realIp) return realIp.trim();
     const forwarded = request.headers.get("x-forwarded-for");
     if (forwarded) return forwarded.split(",")[0].trim();
-    return "127.0.0.1";
+    return "unknown";
 }

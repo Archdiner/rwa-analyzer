@@ -46,6 +46,7 @@ export async function rwaxyzAdapter(asset: ParsedAssetId, symbolHint?: string): 
         });
         const res = await fetch(`${BASE}/assets?query=${encodeURIComponent(query)}`, {
             headers: { Authorization: `Bearer ${key}`, accept: "application/json" },
+            signal: AbortSignal.timeout(15_000),
         });
         if (!res.ok) return EMPTY;
 

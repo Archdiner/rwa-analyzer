@@ -143,11 +143,19 @@ export async function getUniverse(): Promise<AssetSummary[]> {
     return data;
 }
 
+// Per-instance in-flight guard: rapid duplicate requests for the same asset all
+// schedule `after(fillQualitative)`, and each fill runs a paid extraction. This
+// dedups them within an instance so only one fill per asset runs at a time; the
+// persisted `qualitative_pending` flag and the global budget cover the rest.
+const inFlightFills = new Set<string>();
+
 /**
  * Runs the deferred qualitative phase for an asset and persists the result.
  * Safe to call from `after()`; failures are logged, not thrown.
  */
 export async function fillQualitative(assetId: string): Promise<void> {
+    if (inFlightFills.has(assetId)) return;
+    inFlightFills.add(assetId);
     try {
         const stored = await getStoredAsset(assetId);
         const opts = seedOptions(assetId);
@@ -160,5 +168,7 @@ export async function fillQualitative(assetId: string): Promise<void> {
         await saveAsset(filled);
     } catch (err) {
         console.error(`[service] qualitative fill failed for ${assetId}:`, err);
+    } finally {
+        inFlightFills.delete(assetId);
     }
 }
