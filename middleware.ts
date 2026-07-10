@@ -4,7 +4,7 @@
 // Agents fetch, they don't click. When something requests /a/{id} with an
 // Accept preference for JSON or markdown, serve the structured form instead of
 // the HTML page - without a human-facing "agent mode" toggle:
-//   Accept: application/json -> rewrite to /api/verify?asset={id} (existing JSON)
+//   Accept: application/json -> rewrite to /a/{id}/verdict.json
 //   Accept: text/markdown    -> rewrite to /a/{id}/verdict.md
 //   otherwise                -> the HTML page, unchanged
 // Every response Varies on Accept so a CDN can't cross-serve the wrong type.
@@ -41,14 +41,11 @@ export function middleware(req: NextRequest): NextResponse {
         return passthrough;
     }
 
+    // Rewrite to a path-based sibling route (never a query rewrite - Next drops a
+    // reassigned search on rewrite). Both verdict routes read the id from the path.
     const url = req.nextUrl.clone();
-    if (wantsJson) {
-        url.pathname = "/api/verify";
-        url.search = `?asset=${idSegment}`;
-    } else {
-        url.pathname = `/a/${idSegment}/verdict.md`;
-        url.search = "";
-    }
+    url.search = "";
+    url.pathname = wantsJson ? `/a/${idSegment}/verdict.json` : `/a/${idSegment}/verdict.md`;
 
     const res = NextResponse.rewrite(url);
     res.headers.set("Vary", "Accept");
