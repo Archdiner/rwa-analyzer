@@ -2,6 +2,8 @@ import Link from "next/link";
 import { after } from "next/server";
 import { parseAssetId } from "@/lib/chains";
 import { getAsset, fillQualitative } from "@/lib/service";
+import { assetJsonLd } from "@/lib/agent/jsonld";
+import { appUrl } from "@/lib/env";
 import RiskCard from "@/components/RiskCard";
 
 export const dynamic = "force-dynamic";
@@ -60,8 +62,18 @@ export default async function AssetPage({ params }: { params: Promise<{ assetId:
         after(() => fillQualitative(decoded));
     }
 
+    const jsonLd = assetJsonLd(
+        result.data.record,
+        result.data.assessment,
+        `${appUrl()}/a/${encodeURIComponent(decoded)}`,
+    );
+
     return (
         <Shell>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             <BackLink />
             <RiskCard
                 record={result.data.record}
