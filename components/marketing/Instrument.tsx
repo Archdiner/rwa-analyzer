@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { settle, uiIn } from "./motion-tokens";
 
-export const FAINT = "rgba(245,244,242,0.14)";
-export const MID = "rgba(245,244,242,0.28)";
-export const SIGNAL = "var(--primary)";
+export const FAINT = "rgba(244,243,239,0.14)";
+export const MID = "rgba(244,243,239,0.28)";
+export const SIGNAL = "var(--signal)";
 
 /** 14px blueprint hatch — same ink as YieldExploder plates. */
 export function Hatch({ accent = false }: { accent?: boolean }) {

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import BrandLogo from "@/components/BrandLogo";
 import { GITHUB_URL } from "@/lib/site";
@@ -23,13 +22,13 @@ export default function SiteHeader() {
                 <nav className="flex items-center gap-3 sm:gap-6">
                     <a
                         href={onHome ? "#integrate" : "/#integrate"}
-                        className={`text-xs transition-colors sm:text-sm ${light ? "text-white/70 hover:text-white" : "text-text-muted hover:text-text"}`}
+                        className={`font-mono text-[11px] uppercase tracking-[0.12em] transition-colors ${light ? "text-white/70 hover:text-white" : "text-text-muted hover:text-text"}`}
                     >
                         Integrate
                     </a>
                     <a
                         href={onHome ? "#explore" : "/#explore"}
-                        className={`text-xs transition-colors sm:text-sm ${light ? "text-white/70 hover:text-white" : "text-text-muted hover:text-text"}`}
+                        className={`font-mono text-[11px] uppercase tracking-[0.12em] transition-colors ${light ? "text-white/70 hover:text-white" : "text-text-muted hover:text-text"}`}
                     >
                         Explore
                     </a>
@@ -37,7 +36,7 @@ export default function SiteHeader() {
                         href={GITHUB_URL}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`text-xs transition-colors sm:text-sm ${light ? "text-white/70 hover:text-white" : "text-text-muted hover:text-text"}`}
+                        className={`font-mono text-[11px] uppercase tracking-[0.12em] transition-colors ${light ? "text-white/70 hover:text-white" : "text-text-muted hover:text-text"}`}
                     >
                         GitHub
                     </a>

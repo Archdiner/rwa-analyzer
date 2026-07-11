@@ -9,14 +9,14 @@
 :root {
     /* Warmer near-black. The harshness before came from pure #050505 + hard
        full-opacity borders, not from "dark". Slight warmth + softer lines. */
-    --bg: #0a0a0b;
+    --bg: #0c0c0d;
     --bg-elev: #101012;
     --bg-elev-2: #17171a;
     --border: rgba(255, 255, 255, 0.07);
     --border-strong: rgba(255, 255, 255, 0.13);
-    --text: #f5f4f2;
-    --text-muted: rgba(245, 244, 242, 0.62);
-    --text-faint: rgba(245, 244, 242, 0.36);
+    --text: #f4f3ef;
+    --text-muted: rgba(244, 243, 239, 0.62);
+    --text-faint: rgba(244, 243, 239, 0.36);
 
     --radius: 14px;
     --radius-lg: 20px;
@@ -28,6 +28,12 @@
     --primary-hover: #d6cfbf;
     --primary-bg: rgba(232, 226, 214, 0.1);
     --primary-contrast: #0a0a0b;
+
+    /* Signal accent - the ONE brand accent, used only for "live / verified /
+       locked" moments (hero cursor, terminal lock, resolved verdict). Same hex
+       as verdict-green but a distinct name so neither intent re-tints the other. */
+    --signal: #10B981;
+    --signal-bg: rgba(16, 185, 129, 0.1);
 
     /* Status - reserved strictly for verdict flags. */
     --green: #10B981;
@@ -70,6 +76,8 @@
     --color-primary-hover: var(--primary-hover);
     --color-primary-bg: var(--primary-bg);
     --color-primary-contrast: var(--primary-contrast);
+    --color-signal: var(--signal);
+    --color-signal-bg: var(--signal-bg);
     --color-green: var(--green);
     --color-green-bg: var(--green-bg);
     --color-amber: var(--amber);
@@ -342,5 +350,64 @@ body {
     .current {
         animation: none;
         stroke-dashoffset: 0;
+    }
+}
+
+/* ── Landing "resolve" system ────────────────────────────────────────────────
+   Mono-forward voice scoped to the marketing landing (product pages keep sans).
+   Green is the ONE signal accent; verdict colors stay reserved.               */
+
+.landing {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    letter-spacing: 0.01em;
+}
+.landing .font-display {
+    font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+    letter-spacing: -0.02em;
+}
+
+/* Mono meta label — bigger sibling of .eyebrow, for section chrome. */
+.label {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+/* Coordinate / registration tag — the "X219129" chrome tags. */
+.coordinate {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: rgba(244, 243, 239, 0.28);
+}
+
+/* Blinking terminal cursor — the signal-green caret. */
+.cursor-blink {
+    display: inline-block;
+    background-color: var(--signal);
+    animation: cursor-blink 1.05s steps(1) infinite;
+}
+@keyframes cursor-blink {
+    0%,
+    50% {
+        opacity: 1;
+    }
+    50.01%,
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Static-noise fallback ground for reduced-motion canvas replacements. */
+.static-noise {
+    background-color: var(--bg);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.956 0 0 0 0 0.952 0 0 0 0 0.937 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.14'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cursor-blink {
+        animation: none;
+        opacity: 1;
     }
 }

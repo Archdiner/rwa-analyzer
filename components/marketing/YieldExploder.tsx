@@ -18,7 +18,7 @@ function Connector({
     return (
         <motion.div
             className={`absolute border-l border-dashed ${
-                accent ? "border-primary/45" : "border-white/20"
+                accent ? "border-signal/45" : "border-white/20"
             } ${className ?? ""}`}
             style={{
                 width: 1,
@@ -154,9 +154,9 @@ export default function YieldExploder() {
                         {/* Top Layer: The Token */}
                         <motion.div
                             style={{ x: topX, y: topY, z: topZ }}
-                            className="absolute flex h-56 w-56 flex-col items-center justify-center border border-primary/50 bg-[#050505]/80 shadow-[0_0_40px_color-mix(in_srgb,var(--primary)_18%,transparent)] backdrop-blur-md"
+                            className="absolute flex h-56 w-56 flex-col items-center justify-center border border-signal/60 bg-[#050505]/80 shadow-[0_0_44px_color-mix(in_srgb,var(--signal)_22%,transparent)] backdrop-blur-md"
                         >
-                            <span className="font-mono text-[10px] uppercase tracking-widest text-primary">
+                            <span className="font-mono text-[10px] uppercase tracking-widest text-signal">
                                 Layer 1
                             </span>
                             <span className="mt-2 font-mono text-sm font-medium text-white">The Token</span>
@@ -164,14 +164,14 @@ export default function YieldExploder() {
                             <div
                                 className="absolute inset-0 -z-10 opacity-10"
                                 style={{
-                                    backgroundImage: `linear-gradient(var(--primary) 1px, transparent 1px), linear-gradient(90deg, var(--primary) 1px, transparent 1px)`,
+                                    backgroundImage: `linear-gradient(var(--signal) 1px, transparent 1px), linear-gradient(90deg, var(--signal) 1px, transparent 1px)`,
                                     backgroundSize: "14px 14px",
                                 }}
                             />
-                            <div className="absolute -left-[1px] -top-[1px] h-3 w-3 border-l border-t border-primary" />
-                            <div className="absolute -right-[1px] -top-[1px] h-3 w-3 border-r border-t border-primary" />
-                            <div className="absolute -bottom-[1px] -left-[1px] h-3 w-3 border-b border-l border-primary" />
-                            <div className="absolute -bottom-[1px] -right-[1px] h-3 w-3 border-b border-r border-primary" />
+                            <div className="absolute -left-[1px] -top-[1px] h-3 w-3 border-l border-t border-signal" />
+                            <div className="absolute -right-[1px] -top-[1px] h-3 w-3 border-r border-t border-signal" />
+                            <div className="absolute -bottom-[1px] -left-[1px] h-3 w-3 border-b border-l border-signal" />
+                            <div className="absolute -bottom-[1px] -right-[1px] h-3 w-3 border-b border-r border-signal" />
                         </motion.div>
                     </motion.div>
                 </div>
@@ -181,7 +181,7 @@ export default function YieldExploder() {
                     className="mt-8 max-w-md text-center lg:hidden"
                 >
                     <div className="border-t border-border pt-6">
-                        <h4 className="eyebrow text-primary">Verification boundary</h4>
+                        <h4 className="eyebrow text-signal">Verification boundary</h4>
                         <p className="mt-2 text-sm leading-relaxed text-text-muted">
                             On-chain reads only verify Layer 1. SEC filings and auditor attestations reconcile Layer 3
                             reserves against Layer 1 supply.
@@ -204,8 +204,8 @@ export default function YieldExploder() {
                     style={{ opacity: detailsOpacity }}
                     className="absolute right-10 top-1/2 hidden max-w-sm -translate-y-1/2 lg:block"
                 >
-                    <div className="border-l border-primary/30 pl-4">
-                        <h4 className="eyebrow text-primary">Verification boundary</h4>
+                    <div className="border-l border-signal/30 pl-4">
+                        <h4 className="eyebrow text-signal">Verification boundary</h4>
                         <p className="mt-2 text-sm leading-relaxed text-text-muted">
                             On-chain reads only verify Layer 1. To verify the asset, I parse SEC EDGAR filings and
                             auditor attestations to reconcile Layer 3 reserves against Layer 1 supply.
