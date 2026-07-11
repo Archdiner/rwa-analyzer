@@ -5,6 +5,14 @@
         {
             "path": "/api/cron/refresh",
             "schedule": "0 6 * * *"
+        },
+        {
+            "path": "/api/features/triage",
+            "schedule": "0 7 * * *"
+        },
+        {
+            "path": "/api/features/cluster",
+            "schedule": "30 7 * * *"
         }
     ],
     "headers": [
